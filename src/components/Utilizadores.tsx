@@ -299,27 +299,27 @@ export default function Utilizadores({
 
       {/* CRUD Modal Form */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl border border-slate-100 flex flex-col my-auto">
             
             {/* Header */}
-            <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <UserCheck className="w-5 h-5 text-orange-500" />
-                <h3 className="font-bold text-sm tracking-tight">
-                  {editingUser ? `Editar Utilizador: ${editingUser.nome}` : 'Adicionar Novo Utilizador à VENDAIA'}
+            <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between rounded-t-2xl shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <UserCheck className="w-5 h-5 text-orange-500 shrink-0" />
+                <h3 className="font-bold text-sm tracking-tight truncate">
+                  {editingUser ? `Editar: ${editingUser.nome}` : 'Adicionar Novo Utilizador'}
                 </h3>
               </div>
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-white transition text-xs font-bold bg-slate-800 px-2.5 py-1 rounded"
+                className="text-slate-400 hover:text-white transition text-xs font-bold bg-slate-800 px-2.5 py-1 rounded shrink-0 ml-2"
               >
                 Fechar
               </button>
             </div>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            {/* Form — scrollable body */}
+            <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1 tracking-wider uppercase">Nome Completo *</label>
@@ -377,13 +377,13 @@ export default function Utilizadores({
               </div>
 
               {/* Advanced Access Management Checkboxes */}
-              <div className="pt-2">
+              <div className="pt-1">
                 <div className="flex items-center gap-1.5 mb-2.5">
                   <Shield className="w-4 h-4 text-orange-500" />
-                  <span className="text-xs font-bold text-slate-850 tracking-wider uppercase">Gestão de Permissões de Acesso</span>
+                  <span className="text-xs font-bold text-slate-850 tracking-wider uppercase">Permissões de Acesso</span>
                 </div>
                 
-                <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <div className="space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-100">
                   {availableModulesList.map(mod => {
                     const isChecked = allowedModules.includes(mod.key);
                     return (
@@ -396,7 +396,7 @@ export default function Utilizadores({
                             : 'bg-transparent border-transparent opacity-70 hover:opacity-100'
                         }`}
                       >
-                        <div className={`w-4 h-4 rounded mt-0.5 flex items-center justify-center transition border ${
+                        <div className={`w-4 h-4 rounded mt-0.5 flex items-center justify-center transition border shrink-0 ${
                           isChecked 
                             ? 'bg-slate-900 border-slate-900 text-white' 
                             : 'bg-white border-slate-300'
@@ -417,12 +417,12 @@ export default function Utilizadores({
               <div className="p-3 bg-amber-50 rounded-xl border border-amber-100 flex items-start gap-2 text-[10px] text-amber-800 leading-normal font-semibold">
                 <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                 <span>
-                  Nota de Acesso: Após registar, este utilizador poderá entrar no CRM utilizando o respetivo email institucional e a palavra-passe padrão institucional <strong className="font-bold underline">vendaia@2026</strong>.
+                  Nota de Acesso: Após registar, este utilizador poderá entrar no CRM utilizando o respetivo email e a palavra-passe padrão <strong className="font-bold underline">vendaia@2026</strong>.
                 </span>
               </div>
 
               {/* Submit Buttons */}
-              <div className="pt-4 border-t border-slate-100 flex justify-end gap-2.5">
+              <div className="pt-3 border-t border-slate-100 flex justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}

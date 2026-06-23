@@ -26,6 +26,24 @@ export default function Auth({ onLogin }: AuthProps) {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
+      // Helper para traduzir erros técnicos do Supabase Auth para mensagens amigáveis
+      const mapAuthError = (message: string): string => {
+        const msg = message.toLowerCase();
+        if (msg.includes("invalid login credentials") || msg.includes("invalid credentials")) {
+          return "E-mail ou palavra-passe errados. Por favor, verifique as suas credenciais.";
+        }
+        if (msg.includes("email not confirmed") || msg.includes("email_not_confirmed")) {
+          return "Este e-mail ainda não foi confirmado. Por favor, valide o seu e-mail.";
+        }
+        if (msg.includes("user not found")) {
+          return "Este e-mail não está cadastrado no sistema.";
+        }
+        if (msg.includes("too many requests") || msg.includes("rate limit")) {
+          return "Demasiadas tentativas de login. Por favor, tente mais tarde.";
+        }
+        return "Não foi possível realizar a autenticação. Verifique a sua ligação à internet ou tente novamente.";
+      };
+
       // 1. Tentar autenticação usando Supabase Auth se o cliente estiver configurado
       if (supabase) {
         const { data, error: authError } = await supabase.auth.signInWithPassword({
@@ -51,8 +69,10 @@ export default function Auth({ onLogin }: AuthProps) {
             });
             return;
           } else {
-            throw new Error('Autenticado com sucesso, mas o perfil do utilizador não foi encontrado na base de dados.');
+            throw new Error('Conta autenticada, mas o seu perfil de utilizador não foi encontrado. Contacte o administrador.');
           }
+        } else if (authError) {
+          throw new Error(mapAuthError(authError.message));
         }
       }
 
@@ -80,10 +100,10 @@ export default function Auth({ onLogin }: AuthProps) {
       }
 
       throw new Error(
-        'Credenciais inválidas. Utilize a sua conta do Supabase Auth ou as credenciais institucionais padrão.'
+        'E-mail ou palavra-passe errados. Por favor, verifique as suas credenciais.'
       );
     } catch (err: any) {
-      setError(err.message || 'Ocorreu um erro ao realizar a autenticação.');
+      setError(err.message || 'Ocorreu um erro inesperado ao tentar ligar.');
     } finally {
       setIsLoading(false);
     }
@@ -94,20 +114,18 @@ export default function Auth({ onLogin }: AuthProps) {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
         
         {/* Header Branding */}
-        <div className="px-8 pt-8 pb-6 bg-slate-900 text-white relative overflow-hidden">
+        <div className="px-8 pt-8 pb-8 bg-slate-900 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500 rounded-full blur-3xl opacity-20 -mr-16 -mt-16"></div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-tr from-orange-500 to-amber-400 rounded-xl flex items-center justify-center font-black text-xl text-slate-950 shadow-lg select-none">
-              V
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight">VENDAIA</h1>
-              <p className="text-xs text-slate-400 font-mono tracking-widest">INTERNAL CRM</p>
-            </div>
+          <div className="flex items-center justify-center">
+            <img 
+              src="/assets/logo%20branco.png" 
+              className="h-12 object-contain" 
+              alt="VENDAIA SOLUTIONS" 
+              onError={(e) => { 
+                (e.currentTarget as HTMLImageElement).style.display = 'none'; 
+              }} 
+            />
           </div>
-          <p className="mt-4 text-slate-300 text-sm font-medium">
-            Acesso corporativo exclusivo para os Sócios Directores da VENDAIA.
-          </p>
         </div>
 
         {/* Content */}

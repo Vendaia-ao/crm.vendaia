@@ -18,6 +18,7 @@ import {
   INITIAL_HISTORICO
 } from './mockData';
 import { supabase } from './lib/supabaseClient';
+import { createClient } from '@supabase/supabase-js';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import Empresas from './components/Empresas';
@@ -269,41 +270,41 @@ export default function App() {
   // Manual Triggered Sync
   const triggerManualSync = async () => {
     if (!supabase) {
-      alert("Supabase não configurado no .env");
+      alert("Ligação ao Supabase em falta. Certifique-se de configurar as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.");
       return;
     }
     setIsSyncing(true);
     try {
       if (empresas && empresas.length > 0) {
         const { error } = await supabase.from("empresas").upsert(empresas);
-        if (error) throw new Error(`[Empresas] ${error.message}`);
+        if (error) throw error;
       }
       if (oportunidades && oportunidades.length > 0) {
         const { error } = await supabase.from("oportunidades").upsert(oportunidades);
-        if (error) throw new Error(`[Oportunidades] ${error.message}`);
+        if (error) throw error;
       }
       if (contactos && contactos.length > 0) {
         const { error } = await supabase.from("contactos").upsert(contactos);
-        if (error) throw new Error(`[Contactos] ${error.message}`);
+        if (error) throw error;
       }
       if (projectos && projectos.length > 0) {
         const { error } = await supabase.from("projectos").upsert(projectos);
-        if (error) throw new Error(`[Projectos] ${error.message}`);
+        if (error) throw error;
       }
       if (historico && historico.length > 0) {
         const { error } = await supabase.from("historico").upsert(historico);
-        if (error) throw new Error(`[Historico] ${error.message}`);
+        if (error) throw error;
       }
       if (profiles && profiles.length > 0) {
         const { error } = await supabase.from("profiles").upsert(profiles);
-        if (error) throw new Error(`[Profiles] ${error.message}`);
+        if (error) throw error;
       }
 
       setDbStatus(prev => ({ ...prev, tablesExist: true, error: null }));
       setLastSynced(new Date().toLocaleTimeString('pt-AO'));
-      alert('Sincronização com o Supabase concluída de forma segura!');
+      alert('Os dados foram sincronizados com sucesso na base de dados!');
     } catch (err: any) {
-      alert(`Erro na ligação: ${err.message}`);
+      alert('Não foi possível sincronizar os dados. Verifique a sua ligação de rede ou a estrutura das tabelas.');
     } finally {
       setIsSyncing(false);
     }
@@ -321,32 +322,111 @@ export default function App() {
   };
 
   // User profiles CRUD handlers
-  const handleAddUser = (newUser: Omit<User, 'id'>) => {
-    const created: User = {
-      ...newUser,
-      id: 'u_' + Math.random().toString(36).substring(2, 11)
-    };
-    setProfiles([...profiles, created]);
+  const handleAddUser = async (newUser: Omit<User, 'id'>) => {
+    try {
+      let finalId = 'u_' + Math.random().toString(36).substring(2, 11);
+
+      // Se o Supabase estiver ligado, tentar criar no Supabase Auth primeiro
+      if (dbStatus.connected && dbStatus.tablesExist && supabase) {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+        
+        if (supabaseUrl && supabaseAnonKey) {
+          const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
+            auth: { persistSession: false }
+          });
+          
+          // Registar no Supabase Auth com a senha padrão vendaia@2026
+          const { data: authData, error: authError } = await tempClient.auth.signUp({
+            email: newUser.email.trim().toLowerCase(),
+            password: 'vendaia@2026',
+            options: {
+              data: {
+                nome: newUser.nome,
+                perfil: newUser.perfil,
+              }
+            }
+          });
+
+          if (authError) {
+            if (!authError.message.includes("already registered") && !authError.message.includes("already exists")) {
+              throw new Error(`Erro ao registar credenciais: ${authError.message}`);
+            }
+          }
+
+          if (authData?.user?.id) {
+            finalId = authData.user.id;
+          }
+        }
+        
+        // Criar o registo correspondente na tabela profiles
+        const { error: profileError } = await supabase.from("profiles").insert({
+          id: finalId,
+          email: newUser.email.trim().toLowerCase(),
+          nome: newUser.nome,
+          perfil: newUser.perfil,
+          permissoes: newUser.permissoes || 'dashboard,empresas,pipeline,projectos'
+        });
+
+        if (profileError) {
+          throw new Error(`Erro ao registar o perfil: ${profileError.message}`);
+        }
+      }
+
+      const created: User = {
+        ...newUser,
+        id: finalId
+      };
+      setProfiles([...profiles, created]);
+      alert(`Utilizador '${newUser.nome}' criado com sucesso! O acesso está configurado com a palavra-passe padrão 'vendaia@2026'.`);
+    } catch (err: any) {
+      alert(`Não foi possível criar o utilizador: ${err.message || 'Verifique se o e-mail já existe ou a sua ligação de rede.'}`);
+    }
   };
 
-  const handleUpdateUser = (updatedUser: User) => {
-    setProfiles(profiles.map(p => p.id === updatedUser.id ? updatedUser : p));
-    // If the current logged-in user updates their own profile, keep in sync!
-    if (currentUser && currentUser.id === updatedUser.id) {
-      setCurrentUser(updatedUser);
-      localStorage.setItem('vendaia_crm_user', JSON.stringify(updatedUser));
+  const handleUpdateUser = async (updatedUser: User) => {
+    try {
+      if (dbStatus.connected && dbStatus.tablesExist && supabase) {
+        const { error } = await supabase
+          .from("profiles")
+          .update({
+            nome: updatedUser.nome,
+            email: updatedUser.email.trim().toLowerCase(),
+            perfil: updatedUser.perfil,
+            permissoes: updatedUser.permissoes
+          })
+          .eq("id", updatedUser.id);
+
+        if (error) throw error;
+      }
+
+      setProfiles(profiles.map(p => p.id === updatedUser.id ? updatedUser : p));
+      
+      // Se for o próprio utilizador logado a atualizar, sincronizar localmente
+      if (currentUser && currentUser.id === updatedUser.id) {
+        setCurrentUser(updatedUser);
+        localStorage.setItem('vendaia_crm_user', JSON.stringify(updatedUser));
+      }
+      alert(`Dados de '${updatedUser.nome}' atualizados com sucesso!`);
+    } catch (err: any) {
+      alert(`Não foi possível atualizar o utilizador: ${err.message || 'Ocorreu um erro ao gravar as alterações.'}`);
     }
   };
 
   const handleDeleteUser = async (id: string) => {
-    setProfiles(profiles.filter(p => p.id !== id));
-    if (dbStatus.connected && dbStatus.tablesExist && supabase) {
-      try {
+    const userToDelete = profiles.find(p => p.id === id);
+    const nomeToDelete = userToDelete ? userToDelete.nome : 'Utilizador';
+
+    try {
+      if (dbStatus.connected && dbStatus.tablesExist && supabase) {
         const { error } = await supabase.from("profiles").delete().eq("id", id);
         if (error) throw error;
-      } catch (err) {
-        console.warn("Erro ao eliminar perfil no Supabase:", err);
       }
+
+      setProfiles(profiles.filter(p => p.id !== id));
+      alert(`O acesso de '${nomeToDelete}' foi removido com sucesso.`);
+    } catch (err: any) {
+      alert(`Não foi possível remover o utilizador: ${err.message || 'Ocorreu um erro de permissão ou rede.'}`);
     }
   };
 
