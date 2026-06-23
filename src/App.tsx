@@ -17,6 +17,7 @@ import {
   INITIAL_PROJECTOS, 
   INITIAL_HISTORICO
 } from './mockData';
+import { supabase } from './lib/supabaseClient';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import Empresas from './components/Empresas';
@@ -96,59 +97,99 @@ export default function App() {
   // Connection check and database hydration
   useEffect(() => {
     const checkDbAndLoad = async () => {
+      if (!supabase) {
+        setDbStatus({
+          connected: false,
+          tablesExist: false,
+          error: "Identificadores do Supabase ausentes no ficheiro .env. Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.",
+        });
+        return;
+      }
+
       try {
-        const statusRes = await fetch('/api/db-status');
-        const status = await statusRes.json();
+        // Attempt a lightweight probe query
+        const { error: probeError } = await supabase.from("empresas").select("id").limit(1);
+        let status = { connected: true, tablesExist: true, error: null as string | null };
+
+        if (probeError) {
+          if (probeError.code === "42P01" || probeError.message?.includes("does not exist")) {
+            status = { connected: true, tablesExist: false, error: "Tabelas em falta no Supabase. É necessário executar a migração SQL." };
+          } else {
+            status = { connected: false, tablesExist: false, error: probeError.message };
+          }
+        }
+
         setDbStatus(status);
 
         if (status.connected && status.tablesExist) {
-          const dataRes = await fetch('/api/crm-data');
-          const data = await dataRes.json();
-          if (data.tablesExist) {
-            // Overwrite local states unconditionally with what is in the database (single source of truth)
-            const cleanEmpresas = data.empresas || [];
-            const cleanContactos = data.contactos || [];
-            const cleanOportunidades = data.oportunidades || [];
-            const cleanProjectos = data.projectos || [];
-            const cleanHistorico = data.historico || [];
-            const cleanProfiles = data.profiles || [];
+          // Perform concurrent requests to all CRM database tables including profiles
+          const [empRes, conRes, optRes, projRes, histRes, profRes] = await Promise.all([
+            supabase.from("empresas").select("*").order("data_cadastro", { ascending: false }),
+            supabase.from("contactos").select("*"),
+            supabase.from("oportunidades").select("*").order("data_entrada", { ascending: false }),
+            supabase.from("projectos").select("*").order("data_inicio", { ascending: false }),
+            supabase.from("historico").select("*").order("data", { ascending: false }),
+            supabase.from("profiles").select("*").order("data_cadastro", { ascending: false }),
+          ]);
 
-            setEmpresas(cleanEmpresas);
-            localStorage.setItem('vendaia_empresas', JSON.stringify(cleanEmpresas));
+          // Detect if any table does not exist database-side
+          const errors = [empRes.error, conRes.error, optRes.error, projRes.error, histRes.error];
+          const missingTableError = errors.find(e => e && (e.code === "42P01" || e.message?.includes("does not exist")));
 
-            setContactos(cleanContactos);
-            localStorage.setItem('vendaia_contactos', JSON.stringify(cleanContactos));
+          if (missingTableError) {
+            setDbStatus(prev => ({
+              ...prev,
+              tablesExist: false,
+              error: "As tabelas não existem no vosso projeto Supabase. Por favor, utilize o script SQL no Painel para criá-las.",
+            }));
+            return;
+          }
 
-            setOportunidades(cleanOportunidades);
-            localStorage.setItem('vendaia_oportunidades', JSON.stringify(cleanOportunidades));
+          const cleanEmpresas = empRes.data || [];
+          const cleanContactos = conRes.data || [];
+          const cleanOportunidades = optRes.data || [];
+          const cleanProjectos = projRes.data || [];
+          const cleanHistorico = histRes.data || [];
+          const cleanProfiles = profRes.data || [];
 
-            setProjectos(cleanProjectos);
-            localStorage.setItem('vendaia_projectos', JSON.stringify(cleanProjectos));
+          setEmpresas(cleanEmpresas);
+          localStorage.setItem('vendaia_empresas', JSON.stringify(cleanEmpresas));
 
-            setHistorico(cleanHistorico);
-            localStorage.setItem('vendaia_historico', JSON.stringify(cleanHistorico));
+          setContactos(cleanContactos);
+          localStorage.setItem('vendaia_contactos', JSON.stringify(cleanContactos));
 
-            if (cleanProfiles.length > 0) {
-              setProfiles(cleanProfiles);
-              localStorage.setItem('vendaia_profiles', JSON.stringify(cleanProfiles));
-              
-              // If current user's profile is updated in DB, sync local currentUser!
-              if (currentUser) {
-                const updatedMe = cleanProfiles.find((p: User) => p.email.toLowerCase() === currentUser.email.toLowerCase());
-                if (updatedMe) {
-                  setCurrentUser(updatedMe);
-                  localStorage.setItem('vendaia_crm_user', JSON.stringify(updatedMe));
-                }
+          setOportunidades(cleanOportunidades);
+          localStorage.setItem('vendaia_oportunidades', JSON.stringify(cleanOportunidades));
+
+          setProjectos(cleanProjectos);
+          localStorage.setItem('vendaia_projectos', JSON.stringify(cleanProjectos));
+
+          setHistorico(cleanHistorico);
+          localStorage.setItem('vendaia_historico', JSON.stringify(cleanHistorico));
+
+          if (cleanProfiles.length > 0) {
+            setProfiles(cleanProfiles);
+            localStorage.setItem('vendaia_profiles', JSON.stringify(cleanProfiles));
+            
+            // If current user's profile is updated in DB, sync local currentUser!
+            if (currentUser) {
+              const updatedMe = cleanProfiles.find((p: User) => p.email.toLowerCase() === currentUser.email.toLowerCase());
+              if (updatedMe) {
+                setCurrentUser(updatedMe);
+                localStorage.setItem('vendaia_crm_user', JSON.stringify(updatedMe));
               }
             }
-
-            setLastSynced(new Date().toLocaleTimeString('pt-AO'));
-          } else {
-            setDbStatus(prev => ({ ...prev, tablesExist: false, error: data.error }));
           }
+
+          setLastSynced(new Date().toLocaleTimeString('pt-AO'));
         }
-      } catch (err) {
-        console.error("Erro ao comunicar com a API do Supabase:", err);
+      } catch (err: any) {
+        console.error("Erro ao comunicar com o Supabase:", err);
+        setDbStatus({
+          connected: false,
+          tablesExist: false,
+          error: err.message || "Erro desconhecido ao ligar ao Supabase.",
+        });
       }
     };
 
@@ -182,20 +223,44 @@ export default function App() {
 
   // Silent debounced background sync to Supabase when active states change
   useEffect(() => {
-    if (dbStatus.connected && dbStatus.tablesExist) {
-      const delayDebounce = setTimeout(() => {
-        fetch('/api/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ empresas, contactos, oportunidades, projectos, historico, profiles }),
-        })
-        .then(res => res.json())
-        .then(res => {
-          if (res.success) {
-            setLastSynced(new Date().toLocaleTimeString('pt-AO'));
+    if (dbStatus.connected && dbStatus.tablesExist && supabase) {
+      const delayDebounce = setTimeout(async () => {
+        try {
+          // Sync Stage A: Empresas
+          if (empresas && empresas.length > 0) {
+            const { error } = await supabase.from("empresas").upsert(empresas);
+            if (error) throw new Error(`[Empresas] ${error.message}`);
           }
-        })
-        .catch(err => console.warn("Background sync error:", err));
+          // Sync Stage B: Oportunidades
+          if (oportunidades && oportunidades.length > 0) {
+            const { error } = await supabase.from("oportunidades").upsert(oportunidades);
+            if (error) throw new Error(`[Oportunidades] ${error.message}`);
+          }
+          // Sync Stage C: Contactos
+          if (contactos && contactos.length > 0) {
+            const { error } = await supabase.from("contactos").upsert(contactos);
+            if (error) throw new Error(`[Contactos] ${error.message}`);
+          }
+          // Sync Stage D: Projectos
+          if (projectos && projectos.length > 0) {
+            const { error } = await supabase.from("projectos").upsert(projectos);
+            if (error) throw new Error(`[Projectos] ${error.message}`);
+          }
+          // Sync Stage E: Historico
+          if (historico && historico.length > 0) {
+            const { error } = await supabase.from("historico").upsert(historico);
+            if (error) throw new Error(`[Historico] ${error.message}`);
+          }
+          // Sync Stage F: Profiles
+          if (profiles && profiles.length > 0) {
+            const { error } = await supabase.from("profiles").upsert(profiles);
+            if (error) throw new Error(`[Profiles] ${error.message}`);
+          }
+
+          setLastSynced(new Date().toLocaleTimeString('pt-AO'));
+        } catch (err: any) {
+          console.warn("Background sync error:", err);
+        }
       }, 3000);
       return () => clearTimeout(delayDebounce);
     }
@@ -203,22 +268,40 @@ export default function App() {
 
   // Manual Triggered Sync
   const triggerManualSync = async () => {
+    if (!supabase) {
+      alert("Supabase não configurado no .env");
+      return;
+    }
     setIsSyncing(true);
     try {
-      const payload = { empresas, contactos, oportunidades, projectos, historico, profiles };
-      const res = await fetch('/api/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const result = await res.json();
-      if (result.success) {
-        setDbStatus(prev => ({ ...prev, tablesExist: true, error: null }));
-        setLastSynced(new Date().toLocaleTimeString('pt-AO'));
-        alert('Sincronização com o Supabase concluída de forma segura!');
-      } else {
-        alert(`Falha na sincronização: ${result.error}`);
+      if (empresas && empresas.length > 0) {
+        const { error } = await supabase.from("empresas").upsert(empresas);
+        if (error) throw new Error(`[Empresas] ${error.message}`);
       }
+      if (oportunidades && oportunidades.length > 0) {
+        const { error } = await supabase.from("oportunidades").upsert(oportunidades);
+        if (error) throw new Error(`[Oportunidades] ${error.message}`);
+      }
+      if (contactos && contactos.length > 0) {
+        const { error } = await supabase.from("contactos").upsert(contactos);
+        if (error) throw new Error(`[Contactos] ${error.message}`);
+      }
+      if (projectos && projectos.length > 0) {
+        const { error } = await supabase.from("projectos").upsert(projectos);
+        if (error) throw new Error(`[Projectos] ${error.message}`);
+      }
+      if (historico && historico.length > 0) {
+        const { error } = await supabase.from("historico").upsert(historico);
+        if (error) throw new Error(`[Historico] ${error.message}`);
+      }
+      if (profiles && profiles.length > 0) {
+        const { error } = await supabase.from("profiles").upsert(profiles);
+        if (error) throw new Error(`[Profiles] ${error.message}`);
+      }
+
+      setDbStatus(prev => ({ ...prev, tablesExist: true, error: null }));
+      setLastSynced(new Date().toLocaleTimeString('pt-AO'));
+      alert('Sincronização com o Supabase concluída de forma segura!');
     } catch (err: any) {
       alert(`Erro na ligação: ${err.message}`);
     } finally {
@@ -257,11 +340,12 @@ export default function App() {
 
   const handleDeleteUser = async (id: string) => {
     setProfiles(profiles.filter(p => p.id !== id));
-    if (dbStatus.connected && dbStatus.tablesExist) {
+    if (dbStatus.connected && dbStatus.tablesExist && supabase) {
       try {
-        await fetch(`/api/profiles/${id}`, { method: 'DELETE' });
+        const { error } = await supabase.from("profiles").delete().eq("id", id);
+        if (error) throw error;
       } catch (err) {
-        console.warn("Erro ao eliminar perfil no servidor:", err);
+        console.warn("Erro ao eliminar perfil no Supabase:", err);
       }
     }
   };
@@ -352,8 +436,16 @@ export default function App() {
     setHistorico([log, ...historico]);
   };
 
-  const handleDeleteOportunidade = (id: string) => {
+  const handleDeleteOportunidade = async (id: string) => {
     setOportunidades(oportunidades.filter(o => o.id !== id));
+    if (dbStatus.connected && dbStatus.tablesExist && supabase) {
+      try {
+        const { error } = await supabase.from("oportunidades").delete().eq("id", id);
+        if (error) throw error;
+      } catch (err) {
+        console.warn("Erro ao eliminar oportunidade no Supabase:", err);
+      }
+    }
   };
 
   const handleUpdateOportunidadeEtapa = (

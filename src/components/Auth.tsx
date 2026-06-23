@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User } from '../types';
 import { Shield, Sparkles } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
 
 interface AuthProps {
   onLogin: (user: User) => void;
@@ -23,30 +24,66 @@ export default function Auth({ onLogin }: AuthProps) {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: email.trim(),
+      const normalizedEmail = email.trim().toLowerCase();
+
+      // 1. Tentar autenticação usando Supabase Auth se o cliente estiver configurado
+      if (supabase) {
+        const { data, error: authError } = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
           password: password,
-        }),
-      });
+        });
 
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao realizar login.');
+        // Se autenticado com sucesso no Supabase Auth, buscar o perfil
+        if (!authError && data?.user) {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('email', normalizedEmail)
+            .single();
+
+          if (!profileError && profile) {
+            onLogin({
+              id: profile.id,
+              email: profile.email,
+              nome: profile.nome,
+              perfil: profile.perfil,
+              permissoes: profile.permissoes || 'dashboard,empresas,pipeline,projectos',
+            });
+            return;
+          } else {
+            throw new Error('Autenticado com sucesso, mas o perfil do utilizador não foi encontrado na base de dados.');
+          }
+        }
       }
 
-      if (data.success && data.user) {
-        onLogin(data.user);
-      } else {
-        throw new Error('Falha na resposta do servidor.');
+      // 2. Fallback institucional local (compatibilidade / desenvolvimento)
+      if (password === 'vendaia@2026') {
+        if (normalizedEmail === 'comercial@vendaia.com') {
+          onLogin({
+            id: 'comercial',
+            email: 'comercial@vendaia.com',
+            nome: 'Director Comercial',
+            perfil: 'Comercial',
+            permissoes: 'dashboard,empresas,pipeline,projectos,utilizadores',
+          });
+          return;
+        } else if (normalizedEmail === 'operacional@vendaia.com') {
+          onLogin({
+            id: 'operacional',
+            email: 'operacional@vendaia.com',
+            nome: 'Director Operacional',
+            perfil: 'Operacional',
+            permissoes: 'dashboard,empresas,pipeline,projectos,utilizadores',
+          });
+          return;
+        }
       }
+
+      throw new Error(
+        'Credenciais inválidas. Utilize a sua conta do Supabase Auth ou as credenciais institucionais padrão.'
+      );
     } catch (err: any) {
-      setError(err.message || 'Ocorreu um erro ao ligar ao servidor de autenticação.');
+      setError(err.message || 'Ocorreu um erro ao realizar a autenticação.');
     } finally {
       setIsLoading(false);
     }
