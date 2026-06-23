@@ -1,0 +1,138 @@
+import React, { useState } from 'react';
+import { User } from '../types';
+import { Shield, Sparkles } from 'lucide-react';
+
+interface AuthProps {
+  onLogin: (user: User) => void;
+}
+
+export default function Auth({ onLogin }: AuthProps) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleManualLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
+    if (!email || !password) {
+      setError('Por favor preencha todos os campos.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          password: password,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao realizar login.');
+      }
+
+      if (data.success && data.user) {
+        onLogin(data.user);
+      } else {
+        throw new Error('Falha na resposta do servidor.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Ocorreu um erro ao ligar ao servidor de autenticação.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div id="auth-container" className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+        
+        {/* Header Branding */}
+        <div className="px-8 pt-8 pb-6 bg-slate-900 text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500 rounded-full blur-3xl opacity-20 -mr-16 -mt-16"></div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-tr from-orange-500 to-amber-400 rounded-xl flex items-center justify-center font-black text-xl text-slate-950 shadow-lg select-none">
+              V
+            </div>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight">VENDAIA</h1>
+              <p className="text-xs text-slate-400 font-mono tracking-widest">INTERNAL CRM</p>
+            </div>
+          </div>
+          <p className="mt-4 text-slate-300 text-sm font-medium">
+            Acesso corporativo exclusivo para os Sócios Directores da VENDAIA.
+          </p>
+        </div>
+
+        {/* Content */}
+        <div className="p-8">
+          {error && (
+            <div className="mb-4 p-3.5 bg-red-50 border-l-4 border-red-500 text-red-700 text-xs rounded-xl font-medium">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleManualLogin} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1 tracking-wider">EMAIL INSTITUCIONAL</label>
+              <input
+                type="email"
+                placeholder="colaborador@vendaia.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+                className="w-full px-3 py-2 text-slate-800 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition disabled:opacity-60"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1 tracking-wider">PALAVRA-PASSE</label>
+              <input
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+                className="w-full px-3 py-2 text-slate-800 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition disabled:opacity-60"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white font-bold text-sm rounded-lg transition shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Shield className="w-4 h-4 text-orange-500" />
+              {isLoading ? 'A autenticar...' : 'Entrar no CRM'}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <span className="text-[10px] text-slate-400 font-semibold italic">
+              Seja bem-vindo. Introduza o seu email da VENDAIA e a sua senha para aceder ao pipeline.
+            </span>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="bg-slate-50 px-8 py-4 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400">
+          <span>VENDAIA Angola © 2026</span>
+          <span className="flex items-center gap-1 font-bold">
+            <Sparkles className="w-3 h-3 text-orange-400" />
+            Empower Sales
+          </span>
+        </div>
+
+      </div>
+    </div>
+  );
+}

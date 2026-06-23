@@ -1,0 +1,6 @@
+{
+  "name": "CRM Vendaia",
+  "description": "CRM interno para gestão comercial, empresas, contactos, pipeline de vendas e gestão de projectos da Vendaia.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
