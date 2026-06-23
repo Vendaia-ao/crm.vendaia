@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { Oportunidade, Empresa, Contacto, PipelineEtapa, ServicoDisponivel, OrigemLead, MotivoPerda } from '../types';
-import { 
-  Plus, 
-  Trash2, 
-  Filter, 
-  DollarSign, 
-  User, 
-  FileText, 
+import {
+  Plus,
+  Trash2,
+  Filter,
+  DollarSign,
+  User,
+  FileText,
   HelpCircle,
   HelpCircle as QuestionMark,
   ArrowRight,
@@ -51,7 +51,7 @@ export default function Pipeline({
   onUpdateOportunidadeEtapa,
   onDeleteOportunidade
 }: PipelineProps) {
-  
+
   // State variables
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -95,11 +95,13 @@ export default function Pipeline({
   // Services available
   const listServicos: ServicoDisponivel[] = [
     'Website',
+    'Email Corporativo',
     'Branding',
     'Social Media',
     'Tráfego Pago',
     'Sistema Personalizado',
     'Consultoria Tecnológica'
+
   ];
 
   // Lead Origins
@@ -227,9 +229,9 @@ export default function Pipeline({
     if (!perdaLeadId) return;
 
     onUpdateOportunidadeEtapa(
-      perdaLeadId, 
-      'Perdido', 
-      perdaMotivo, 
+      perdaLeadId,
+      'Perdido',
+      perdaMotivo,
       perdaMotivoDetalhe
     );
 
@@ -252,7 +254,7 @@ export default function Pipeline({
 
   return (
     <div id="pipeline-module" className="space-y-6">
-      
+
       {/* Top filter toolbar */}
       <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-wrap gap-4 items-center justify-between">
         <div className="flex flex-wrap items-center gap-3">
@@ -330,7 +332,7 @@ export default function Pipeline({
             className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 transition cursor-pointer"
           >
             <Plus className="w-4 h-4 text-orange-500" />
-            Captar Lead Oportunidade
+            Captar Lead
           </button>
         </div>
       </div>
@@ -537,7 +539,7 @@ export default function Pipeline({
                           <span className="text-[10px] bg-slate-100 text-slate-700 font-extrabold px-1.5 py-0.5 rounded">
                             {lead.servico}
                           </span>
-                          
+
                           {/* Quick controls to move stage easily */}
                           <div className="flex gap-1">
                             <select
@@ -627,7 +629,7 @@ export default function Pipeline({
       {showAddModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-            
+
             <div className="p-5 border-b border-slate-100 bg-slate-900 text-white flex justify-between items-center">
               <h3 className="font-bold flex items-center gap-2 text-sm uppercase">
                 <Building2 className="w-5 h-5 text-orange-500" />
@@ -639,7 +641,7 @@ export default function Pipeline({
             </div>
 
             <form onSubmit={handleAddSubmit} className="p-5 space-y-4 text-xs">
-              
+
               <div>
                 <label className="block text-[10px] font-bold text-slate-700 mb-1 uppercase">Empresa de Destino *</label>
                 <select
@@ -743,7 +745,7 @@ export default function Pipeline({
       {showPerdaModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
-            
+
             <div className="p-4 bg-red-600 text-white flex justify-between items-center">
               <h3 className="font-extrabold flex items-center gap-2 text-xs uppercase tracking-wider">
                 <AlertOctagon className="w-5 h-5" />
@@ -823,7 +825,7 @@ export default function Pipeline({
         return (
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg border border-slate-100 overflow-hidden text-left">
-              
+
               <div className="p-5 border-b border-slate-100 bg-slate-950 text-white flex justify-between items-center">
                 <div className="flex items-center gap-2.5">
                   <div className="p-1.5 bg-slate-900 rounded-lg text-orange-500">
@@ -890,7 +892,7 @@ export default function Pipeline({
                               </p>
                             )}
                           </div>
-                          
+
                           <div className="flex gap-1.5 shrink-0">
                             {con.whatsapp && (
                               <a

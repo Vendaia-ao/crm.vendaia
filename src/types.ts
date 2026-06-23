@@ -35,6 +35,7 @@ export interface Contacto {
 
 export type ServicoDisponivel =
   | 'Website'
+  | 'E-mail Corporativo'
   | 'Branding'
   | 'Social Media'
   | 'Tráfego Pago'
