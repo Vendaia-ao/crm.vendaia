@@ -111,11 +111,11 @@ export default function Auth({ onLogin }: AuthProps) {
 
   return (
     <div id="auth-container" className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+      <div className="w-full max-w-md bg-white rounded-none shadow-xl border border-slate-100 overflow-hidden">
         
         {/* Header Branding */}
         <div className="px-8 pt-8 pb-8 bg-slate-900 text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500 rounded-full blur-3xl opacity-20 -mr-16 -mt-16"></div>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500 rounded-none blur-3xl opacity-20 -mr-16 -mt-16"></div>
           <div className="flex items-center justify-center">
             <img 
               src="/assets/logo%20branco.png" 
@@ -131,7 +131,7 @@ export default function Auth({ onLogin }: AuthProps) {
         {/* Content */}
         <div className="p-8">
           {error && (
-            <div className="mb-4 p-3.5 bg-red-50 border-l-4 border-red-500 text-red-700 text-xs rounded-xl font-medium">
+            <div className="mb-4 p-3.5 bg-red-50 border-l-4 border-red-500 text-red-700 text-xs rounded-none font-medium">
               {error}
             </div>
           )}
@@ -145,7 +145,7 @@ export default function Auth({ onLogin }: AuthProps) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
-                className="w-full px-3 py-2 text-slate-800 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition disabled:opacity-60"
+                className="w-full px-3 py-2 text-slate-800 text-sm bg-slate-50 border border-slate-200 rounded-none focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition disabled:opacity-60"
               />
             </div>
 
@@ -157,14 +157,14 @@ export default function Auth({ onLogin }: AuthProps) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
-                className="w-full px-3 py-2 text-slate-800 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition disabled:opacity-60"
+                className="w-full px-3 py-2 text-slate-800 text-sm bg-slate-50 border border-slate-200 rounded-none focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition disabled:opacity-60"
               />
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white font-bold text-sm rounded-lg transition shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white font-bold text-sm rounded-none transition shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer"
             >
               <Shield className="w-4 h-4 text-orange-500" />
               {isLoading ? 'A autenticar...' : 'Entrar no CRM'}

@@ -814,6 +814,14 @@ export default function App() {
   ) => {
     setClientes(prev => prev.map(c => {
       if (c.id !== id) return c;
+      
+      // Auto-update Project if client becomes 'Cliente Ativo'
+      if (estado === 'Cliente Ativo' && c.projeto_associado) {
+        setProjectos(currentProjs => currentProjs.map(p => 
+          p.id === c.projeto_associado ? { ...p, estado: 'Entregue' } : p
+        ));
+      }
+
       return {
         ...c,
         estado,
@@ -956,7 +964,7 @@ export default function App() {
 
           <button 
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className={`p-1.5 rounded hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer ${isSidebarCollapsed ? 'mx-auto' : ''}`}
+            className={`p-1.5 rounded-none hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer ${isSidebarCollapsed ? 'mx-auto' : ''}`}
             title={isSidebarCollapsed ? "Expandir Sidebar" : "Recolher Sidebar"}
           >
             <Menu className="w-4 h-4 text-orange-500" />
@@ -1076,30 +1084,39 @@ export default function App() {
 
         {/* Desktop Sidebar Bottom Partner Profile Card */}
         <div className="p-3 border-t border-slate-200 bg-slate-50/55">
-          <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} p-2 bg-white border border-slate-205 rounded-xl shadow-sm`}>
-            <div className="w-8 h-8 rounded-lg bg-slate-900 text-orange-500 font-bold flex items-center justify-center text-xs shadow-inner shrink-0">
+          <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} p-2 bg-white border border-slate-205 rounded-none shadow-sm`}>
+            <div className="w-8 h-8 rounded-none bg-slate-900 text-orange-500 font-bold flex items-center justify-center text-xs shadow-inner shrink-0">
               {currentUser.nome.substring(0, 2).toUpperCase()}
             </div>
             {!isSidebarCollapsed && (
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-slate-900 truncate tracking-tight">{currentUser.nome}</p>
-                <p className="text-[10px] text-slate-500 truncate leading-none mt-0.5">{currentUser.perfil}</p>
+              <div className="flex-1 min-w-0 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-slate-900 truncate tracking-tight">{currentUser.nome}</p>
+                  <p className="text-[10px] text-slate-500 truncate leading-none mt-0.5">{currentUser.perfil}</p>
+                </div>
+                <div className="flex flex-col gap-1 items-end">
+                  <button
+                    onClick={() => setShowPasswordModal(true)}
+                    className="p-1 text-slate-400 hover:text-amber-600 transition rounded-none hover:bg-amber-50 cursor-pointer"
+                    title="Alterar Senha"
+                  >
+                    <Key className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="p-1 text-slate-400 hover:text-red-650 transition rounded-none hover:bg-red-50 cursor-pointer"
+                    title="Encerrar Sessão"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-            )}
-            {!isSidebarCollapsed && (
-              <button
-                onClick={handleLogout}
-                className="p-1 text-slate-400 hover:text-red-650 transition rounded-lg hover:bg-red-50 cursor-pointer"
-                title="Encerrar Sessão"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
             )}
           </div>
           {isSidebarCollapsed && (
             <button
               onClick={handleLogout}
-              className="mt-3 w-full p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg flex justify-center transition cursor-pointer"
+              className="mt-3 w-full p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-none flex justify-center transition cursor-pointer"
               title="Encerrar Sessão"
             >
               <LogOut className="w-4 h-4" />
@@ -1114,7 +1131,7 @@ export default function App() {
           <div className="flex items-center gap-2 py-1">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-1.5 rounded bg-slate-800 text-orange-500 hover:text-white hover:bg-slate-700 transition cursor-pointer"
+              className="p-1.5 rounded-none bg-slate-800 text-orange-500 hover:text-white hover:bg-slate-700 transition cursor-pointer"
               title="Menu Hamburguer"
               id="mobile-hamburguer-btn"
             >
@@ -1132,8 +1149,15 @@ export default function App() {
 
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setShowPasswordModal(true)}
+              className="p-1.5 bg-slate-800 hover:bg-amber-600 text-slate-300 hover:text-white rounded-none transition cursor-pointer"
+              title="Alterar Senha"
+            >
+              <Key className="w-3.5 h-3.5" />
+            </button>
+            <button
               onClick={handleLogout}
-              className="p-1.5 bg-slate-800 hover:bg-red-655 text-slate-300 hover:text-white rounded-lg transition cursor-pointer"
+              className="p-1.5 bg-slate-800 hover:bg-red-655 text-slate-300 hover:text-white rounded-none transition cursor-pointer"
               title="Sair"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -1152,7 +1176,7 @@ export default function App() {
                     setActiveModule('dashboard');
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`p-3 rounded-xl text-xs font-black transition flex flex-col items-center gap-2 cursor-pointer ${
+                  className={`p-3 rounded-none text-xs font-black transition flex flex-col items-center gap-2 cursor-pointer ${
                     activeModule === 'dashboard' ? 'bg-orange-500 text-slate-950 shadow-inner' : 'bg-slate-900 text-slate-300 hover:bg-slate-850'
                   }`}
                 >
@@ -1166,7 +1190,7 @@ export default function App() {
                     setActiveModule('empresas');
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`p-3 rounded-xl text-xs font-black transition flex flex-col items-center gap-2 cursor-pointer ${
+                  className={`p-3 rounded-none text-xs font-black transition flex flex-col items-center gap-2 cursor-pointer ${
                     activeModule === 'empresas' ? 'bg-orange-500 text-slate-950 shadow-inner' : 'bg-slate-900 text-slate-300 hover:bg-slate-850'
                   }`}
                 >
@@ -1180,7 +1204,7 @@ export default function App() {
                     setActiveModule('pipeline');
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`p-3 rounded-xl text-xs font-black transition flex flex-col items-center gap-2 cursor-pointer ${
+                  className={`p-3 rounded-none text-xs font-black transition flex flex-col items-center gap-2 cursor-pointer ${
                     activeModule === 'pipeline' ? 'bg-orange-500 text-slate-950 shadow-inner' : 'bg-slate-900 text-slate-300 hover:bg-slate-850'
                   }`}
                 >
@@ -1194,7 +1218,7 @@ export default function App() {
                     setActiveModule('projectos');
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`p-3 rounded-xl text-xs font-black transition flex flex-col items-center gap-2 cursor-pointer ${
+                  className={`p-3 rounded-none text-xs font-black transition flex flex-col items-center gap-2 cursor-pointer ${
                     activeModule === 'projectos' ? 'bg-orange-500 text-slate-950 shadow-inner' : 'bg-slate-900 text-slate-300 hover:bg-slate-850'
                   }`}
                 >
@@ -1208,7 +1232,7 @@ export default function App() {
                     setActiveModule('utilizadores');
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`p-3 rounded-xl text-xs font-black transition flex flex-col items-center gap-2 cursor-pointer ${
+                  className={`p-3 rounded-none text-xs font-black transition flex flex-col items-center gap-2 cursor-pointer ${
                     activeModule === 'utilizadores' ? 'bg-orange-500 text-slate-950 shadow-inner' : 'bg-slate-905 text-slate-300 hover:bg-slate-850'
                   }`}
                 >
@@ -1225,7 +1249,7 @@ export default function App() {
           {hasPermission('dashboard') && (
             <button
               onClick={() => setActiveModule('dashboard')}
-              className={`px-3 py-1 rounded text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${
+              className={`px-3 py-1 rounded-none text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${
                 activeModule === 'dashboard' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
               }`}
             >
@@ -1235,7 +1259,7 @@ export default function App() {
           {hasPermission('empresas') && (
             <button
               onClick={() => setActiveModule('empresas')}
-              className={`px-3 py-1 rounded text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${
+              className={`px-3 py-1 rounded-none text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${
                 activeModule === 'empresas' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
               }`}
             >
@@ -1245,7 +1269,7 @@ export default function App() {
           {hasPermission('pipeline') && (
             <button
               onClick={() => setActiveModule('pipeline')}
-              className={`px-3 py-1 rounded text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${
+              className={`px-3 py-1 rounded-none text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${
                 activeModule === 'pipeline' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
               }`}
             >
@@ -1256,7 +1280,7 @@ export default function App() {
             <>
               <button
                 onClick={() => setActiveModule('clientes')}
-                className={`px-3 py-1 rounded text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${
+                className={`px-3 py-1 rounded-none text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${
                   activeModule === 'clientes' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
                 }`}
               >
@@ -1264,7 +1288,7 @@ export default function App() {
               </button>
               <button
                 onClick={() => setActiveModule('projectos')}
-                className={`px-3 py-1 rounded text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${
+                className={`px-3 py-1 rounded-none text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${
                   activeModule === 'projectos' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
                 }`}
               >
@@ -1275,7 +1299,7 @@ export default function App() {
           {hasPermission('utilizadores') && (
             <button
               onClick={() => setActiveModule('utilizadores')}
-              className={`px-3 py-1 rounded text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${
+              className={`px-3 py-1 rounded-none text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${
                 activeModule === 'utilizadores' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
               }`}
             >
@@ -1300,7 +1324,7 @@ export default function App() {
                 : activeModule === 'dashboard' ? 'Dashboard'
                 : activeModule}
             </h1>
-            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 transition text-[11px] text-slate-600 font-semibold rounded-md border border-slate-200">
+            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 transition text-[11px] text-slate-600 font-semibold rounded-none border border-slate-200">
               <Activity className="w-3 h-3 text-emerald-500 animate-pulse" />
               {currentUser.nome}
             </span>
@@ -1405,12 +1429,12 @@ export default function App() {
       {/* Supabase SQL Migration Instructions Modal */}
       {showSqlModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in duration-200">
+          <div className="bg-white rounded-none shadow-xl border border-slate-200 max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in duration-200">
             {/* Modal Header */}
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-905 text-slate-900">
               <div>
                 <h3 className="text-sm font-bold flex items-center gap-2">
-                  <span className="p-1 px-1.5 bg-amber-100 text-amber-700 rounded text-[10px] font-black">SQL EDITOR</span>
+                  <span className="p-1 px-1.5 bg-amber-100 text-amber-700 rounded-none text-[10px] font-black">SQL EDITOR</span>
                   Tabelas em falta no Supabase
                 </h3>
                 <p className="text-xs text-slate-500 mt-1">Crie a estrutura de dados necessária para persistência segura.</p>
@@ -1425,13 +1449,13 @@ export default function App() {
 
             {/* Modal Body */}
             <div className="p-6 overflow-y-auto space-y-4 text-xs text-slate-600 leading-relaxed">
-              <div className="bg-amber-50 text-amber-900 p-3.5 rounded-xl border border-amber-200 flex gap-2">
+              <div className="bg-amber-50 text-amber-900 p-3.5 rounded-none border border-amber-200 flex gap-2">
                 <span className="font-bold shrink-0">Passo a Passo:</span>
                 <span>Copie o código SQL abaixo, abra o painel do seu projeto no <strong>Supabase (supabase.com)</strong>, vá para o menu <strong>SQL Editor</strong> na barra lateral esquerda, clique em <strong>New Query</strong>, cole o código e clique em <strong>Run</strong> no canto inferior direito.</span>
               </div>
 
               <div className="space-y-1">
-                <div className="flex justify-between items-center bg-slate-100 px-3 py-1.5 rounded-t-lg border-t border-x border-slate-200 font-mono text-[10px] font-bold text-slate-700">
+                <div className="flex justify-between items-center bg-slate-100 px-3 py-1.5 rounded-none border-t border-x border-slate-200 font-mono text-[10px] font-bold text-slate-700">
                   <span>Vendaia CRM Schema (v1.0)</span>
                   <button 
                     onClick={() => {
@@ -1556,12 +1580,12 @@ CREATE POLICY "Acesso total Historico" ON historico
 `);
                       alert('Código SQL copiado!');
                     }}
-                    className="px-2 py-0.5 bg-white border border-slate-300 rounded hover:bg-slate-50 text-[9px] font-extrabold text-slate-800 cursor-pointer"
+                    className="px-2 py-0.5 bg-white border border-slate-300 rounded-none hover:bg-slate-50 text-[9px] font-extrabold text-slate-800 cursor-pointer"
                   >
                     Copiar SQL
                   </button>
                 </div>
-                <pre className="bg-slate-900 text-slate-200 p-3.5 rounded-b-lg overflow-x-auto text-[10px] font-mono leading-relaxed max-h-[180px] border border-slate-800">
+                <pre className="bg-slate-900 text-slate-200 p-3.5 rounded-none overflow-x-auto text-[10px] font-mono leading-relaxed max-h-[180px] border border-slate-800">
 {`-- 1. Empresas Table (Com RLS habilitado)
 CREATE TABLE IF NOT EXISTS empresas (
   id TEXT PRIMARY KEY,
@@ -1653,7 +1677,7 @@ CREATE POLICY "Acesso total Historico" ON historico FOR ALL TO anon, authenticat
             <div className="p-4 border-t border-slate-100 bg-slate-55 flex justify-end gap-2">
               <button
                 onClick={() => setShowSqlModal(false)}
-                className="px-4 py-2 bg-slate-900 border border-transparent text-white rounded-xl font-bold cursor-pointer hover:bg-slate-800 transition"
+                className="px-4 py-2 bg-slate-900 border border-transparent text-white rounded-none font-bold cursor-pointer hover:bg-slate-800 transition"
               >
                 Fechar
               </button>
@@ -1669,7 +1693,7 @@ CREATE POLICY "Acesso total Historico" ON historico FOR ALL TO anon, authenticat
           onClick={() => setShowSettingsModal(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
+            className="bg-white rounded-none shadow-2xl w-full max-w-lg overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
@@ -1695,11 +1719,11 @@ CREATE POLICY "Acesso total Historico" ON historico FOR ALL TO anon, authenticat
                 <p className="text-xs text-slate-500 mb-3">
                   Estes serviços aparecem em todos os selectores de serviço da plataforma.
                 </p>
-                <div className="flex flex-wrap gap-2 mb-3 min-h-[44px] bg-slate-50 rounded-xl p-3 border border-slate-200">
+                <div className="flex flex-wrap gap-2 mb-3 min-h-[44px] bg-slate-50 rounded-none p-3 border border-slate-200">
                   {servicosConfig.map(s => (
                     <span
                       key={s}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-none text-xs font-semibold bg-blue-100 text-blue-800"
                     >
                       {s}
                       <button
@@ -1719,37 +1743,23 @@ CREATE POLICY "Acesso total Historico" ON historico FOR ALL TO anon, authenticat
                     onChange={e => setNewServicoInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleAddServico()}
                     placeholder="Novo serviço (ex: SEO, Consultoria...)"
-                    className="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                    className="flex-1 border border-slate-300 rounded-none px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
                   />
                   <button
                     onClick={handleAddServico}
-                    className="bg-blue-600 text-white px-3 py-2 rounded-xl hover:bg-blue-700 transition flex items-center gap-1 text-sm font-semibold"
+                    className="bg-blue-600 text-white px-3 py-2 rounded-none hover:bg-blue-700 transition flex items-center gap-1 text-sm font-semibold"
                   >
                     <Plus className="w-4 h-4" /> Adicionar
                   </button>
                 </div>
               </div>
 
-              <hr className="border-slate-100" />
-
-              {/* Password Change Section */}
-              <div>
-                <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
-                  <Key className="w-4 h-4 text-amber-500" /> Segurança da Conta
-                </h3>
-                <button
-                  onClick={() => { setShowSettingsModal(false); setShowPasswordModal(true); }}
-                  className="flex items-center gap-2 px-4 py-2.5 border border-amber-300 bg-amber-50 text-amber-800 rounded-xl hover:bg-amber-100 transition text-sm font-semibold w-full"
-                >
-                  <Key className="w-4 h-4" /> Alterar Palavra-passe
-                </button>
               </div>
-            </div>
 
             <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
               <button
                 onClick={() => setShowSettingsModal(false)}
-                className="px-5 py-2 bg-slate-800 text-white rounded-xl hover:bg-slate-700 font-semibold text-sm transition"
+                className="px-5 py-2 bg-slate-800 text-white rounded-none hover:bg-slate-700 font-semibold text-sm transition"
               >
                 Fechar
               </button>
@@ -1765,7 +1775,7 @@ CREATE POLICY "Acesso total Historico" ON historico FOR ALL TO anon, authenticat
           onClick={() => setShowPasswordModal(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+            className="bg-white rounded-none shadow-2xl w-full max-w-md overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
             <div className="bg-gradient-to-r from-amber-600 to-amber-500 p-5 flex justify-between items-center">
@@ -1790,7 +1800,7 @@ CREATE POLICY "Acesso total Historico" ON historico FOR ALL TO anon, authenticat
                   required
                   minLength={6}
                   placeholder="Mínimo 6 caracteres"
-                  className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-amber-400 outline-none"
+                  className="w-full border border-slate-300 rounded-none px-3 py-2.5 text-sm focus:ring-2 focus:ring-amber-400 outline-none"
                 />
               </div>
               <div>
@@ -1802,21 +1812,21 @@ CREATE POLICY "Acesso total Historico" ON historico FOR ALL TO anon, authenticat
                   required
                   minLength={6}
                   placeholder="Repita a nova palavra-passe"
-                  className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-amber-400 outline-none"
+                  className="w-full border border-slate-300 rounded-none px-3 py-2.5 text-sm focus:ring-2 focus:ring-amber-400 outline-none"
                 />
               </div>
               <div className="pt-2 flex gap-2 justify-end">
                 <button
                   type="button"
                   onClick={() => setShowPasswordModal(false)}
-                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 text-sm font-semibold transition"
+                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-none hover:bg-slate-50 text-sm font-semibold transition"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isChangingPassword}
-                  className="px-5 py-2 bg-amber-600 text-white rounded-xl hover:bg-amber-700 text-sm font-bold transition disabled:opacity-60"
+                  className="px-5 py-2 bg-amber-600 text-white rounded-none hover:bg-amber-700 text-sm font-bold transition disabled:opacity-60"
                 >
                   {isChangingPassword ? 'A alterar...' : 'Confirmar'}
                 </button>

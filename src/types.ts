@@ -87,7 +87,8 @@ export interface Oportunidade {
 export type EstadoProjecto =
   | 'Em Produção'
   | 'Em Revisão'
-  | 'Pronto para Entrega';
+  | 'Pronto para Entrega'
+  | 'Entregue';
 
 export interface Projecto {
   id: string;

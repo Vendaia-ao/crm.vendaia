@@ -345,10 +345,10 @@ export default function Empresas({
       {isSubmenuCollapsed ? (
         /* On mobile, when collapsed, we do not render any block in the left section column to fully release screen space. 
            On desktop, we render the slim collapsible bar of 48px (w-12). */
-        <div className="hidden lg:flex w-12 bg-slate-900 text-white rounded-xl shadow-sm flex-col items-center py-6 h-[calc(100vh-220px)] min-h-[500px] transition-all duration-300 shrink-0 border border-slate-900 gap-6 select-none animate-fade-in">
+        <div className="hidden lg:flex w-12 bg-slate-900 text-white rounded-none shadow-sm flex-col items-center py-6 h-[calc(100vh-220px)] min-h-[500px] transition-all duration-300 shrink-0 border border-slate-900 gap-6 select-none animate-fade-in">
           <button
             onClick={() => setIsSubmenuCollapsed(false)}
-            className="p-2 bg-slate-800 hover:bg-slate-700 text-orange-500 hover:text-white rounded-lg transition-all shadow cursor-pointer"
+            className="p-2 bg-slate-800 hover:bg-slate-700 text-orange-500 hover:text-white rounded-none transition-all shadow cursor-pointer"
             title="Expandir Diretório de Clientes"
           >
             <Menu className="w-4 h-4" />
@@ -361,14 +361,14 @@ export default function Empresas({
           </div>
         </div>
       ) : (
-        <div className="w-full lg:w-[32%] bg-white rounded-xl border border-slate-100 shadow-sm flex flex-col h-[calc(100vh-220px)] min-h-[500px] transition-all duration-300 shrink-0">
+        <div className="w-full lg:w-[32%] bg-white rounded-none border border-slate-100 shadow-sm flex flex-col h-[calc(100vh-220px)] min-h-[500px] transition-all duration-300 shrink-0">
           {/* Header Tools */}
           <div className="p-4 border-b border-slate-100 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setIsSubmenuCollapsed(true)}
-                  className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-orange-500 transition cursor-pointer"
+                  className="p-1 hover:bg-slate-100 rounded-none text-slate-400 hover:text-orange-500 transition cursor-pointer"
                   title="Recolher Diretório"
                   id="collapse-directory-btn"
                 >
@@ -378,7 +378,7 @@ export default function Empresas({
               </div>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="px-2 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg flex items-center gap-0.5 transition cursor-pointer"
+                className="px-2 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-none flex items-center gap-0.5 transition cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5 text-orange-500" />
                 Adicionar
@@ -392,7 +392,7 @@ export default function Empresas({
                 placeholder="Pesquisar nome, nicho, cidade..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500"
+                className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-none focus:outline-none focus:ring-1 focus:ring-orange-500"
               />
             </div>
 
@@ -402,7 +402,7 @@ export default function Empresas({
                 <select
                   value={selectedNicho}
                   onChange={(e) => setSelectedNicho(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 text-xs text-slate-600 rounded px-2 py-1 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 text-xs text-slate-600 rounded-none px-2 py-1 focus:outline-none"
                 >
                   <option value="todos">Todos os nichos</option>
                   {nichesList.map(nich => (
@@ -410,7 +410,7 @@ export default function Empresas({
                   ))}
                 </select>
               </div>
-              <div className="flex items-center gap-1.5 border border-slate-200 rounded p-1 bg-slate-50">
+              <div className="flex items-center gap-1.5 border border-slate-200 rounded-none p-1 bg-slate-50">
                 <span className="text-[10px] text-slate-400 font-bold uppercase pl-1">De:</span>
                 <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="flex-1 bg-transparent text-[10px] text-slate-600 focus:outline-none" />
                 <span className="text-[10px] text-slate-400 font-bold uppercase border-l border-slate-200 pl-1.5">Até:</span>
@@ -442,7 +442,7 @@ export default function Empresas({
                       {emp.nome_empresa}
                     </h4>
                     <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
-                      <span className="font-semibold text-slate-600 bg-slate-100 rounded px-1.5 py-0.2">{emp.nicho || 'Sem nicho'}</span>
+                      <span className="font-semibold text-slate-600 bg-slate-100 rounded-none px-1.5 py-0.2">{emp.nicho || 'Sem nicho'}</span>
                       <span>•</span>
                       <span>{emp.cidade || 'Sem cidade'}</span>
                     </div>
@@ -465,7 +465,7 @@ export default function Empresas({
       <div className="flex-1 min-w-0 space-y-6">
         {/* Mobile Directory Re-opener Bar (Displayed only on mobile when list is hidden/collapsed) */}
         {isSubmenuCollapsed && (
-          <div className="lg:hidden w-full bg-slate-900 text-white rounded-xl shadow-lg flex items-center justify-between p-3.5 border border-slate-950 gap-3 mb-2 select-none animate-fade-in shrink-0">
+          <div className="lg:hidden w-full bg-slate-900 text-white rounded-none shadow-lg flex items-center justify-between p-3.5 border border-slate-950 gap-3 mb-2 select-none animate-fade-in shrink-0">
             <div className="flex items-center gap-2">
               <Building2 className="w-4 h-4 text-orange-500 animate-pulse" />
               <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-350">
@@ -474,7 +474,7 @@ export default function Empresas({
             </div>
             <button
               onClick={() => setIsSubmenuCollapsed(false)}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-orange-400 hover:text-white rounded-lg transition-all text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-orange-400 hover:text-white rounded-none transition-all text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
               title="Expandir Diretório de Clientes"
             >
               <Menu className="w-3.5 h-3.5 text-orange-500" />
@@ -487,15 +487,15 @@ export default function Empresas({
           <div className="space-y-6">
             
             {/* Main Premium Banner info */}
-            <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="bg-white p-6 rounded-none border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="flex items-start gap-3">
-                <div className="w-12 h-12 bg-gradient-to-tr from-slate-900 to-slate-800 rounded-xl flex items-center justify-center font-bold text-xl text-orange-500 shadow">
+                <div className="w-12 h-12 bg-gradient-to-tr from-slate-900 to-slate-800 rounded-none flex items-center justify-center font-bold text-xl text-orange-500 shadow">
                   <Building2 className="w-6 h-6" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-lg font-extrabold text-slate-900">{selectedEmpresa.nome_empresa}</h2>
-                    <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 rounded px-2 py-0.5 font-bold">
+                    <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-none px-2 py-0.5 font-bold">
                       Cliente Registado
                     </span>
                   </div>
@@ -507,7 +507,7 @@ export default function Empresas({
 
               <button
                 onClick={() => handleEditEmpresaClick(selectedEmpresa)}
-                className="px-3.5 py-2 border border-slate-200 hover:border-orange-500 hover:text-orange-500 text-slate-700 font-bold text-xs rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+                className="px-3.5 py-2 border border-slate-200 hover:border-orange-500 hover:text-orange-500 text-slate-700 font-bold text-xs rounded-none flex items-center gap-1.5 transition cursor-pointer"
               >
                 <Edit2 className="w-3.5 h-3.5" />
                 Editar Dados
@@ -517,7 +517,7 @@ export default function Empresas({
             {/* Core Info & Digital Channels */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               
-              <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm space-y-4 md:col-span-2">
+              <div className="bg-white p-5 rounded-none border border-slate-100 shadow-sm space-y-4 md:col-span-2">
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                   <Phone className="w-3.5 h-3.5 text-orange-400" />
                   Contactos e Localização Princial
@@ -542,7 +542,7 @@ export default function Empresas({
                 </div>
 
                 {selectedEmpresa.observacoes && (
-                  <div className="mt-4 p-3 bg-slate-50 rounded-lg text-xs border border-slate-100">
+                  <div className="mt-4 p-3 bg-slate-50 rounded-none text-xs border border-slate-100">
                     <span className="font-extrabold text-slate-500 block uppercase mb-1">Notas Operacionais</span>
                     <p className="text-slate-700 leading-relaxed font-medium">{selectedEmpresa.observacoes}</p>
                   </div>
@@ -550,7 +550,7 @@ export default function Empresas({
               </div>
 
               {/* Digital channels */}
-              <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm space-y-4">
+              <div className="bg-white p-5 rounded-none border border-slate-100 shadow-sm space-y-4">
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                   <Globe className="w-3.5 h-3.5 text-orange-400" />
                   Canais Digitais
@@ -621,7 +621,7 @@ export default function Empresas({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
               {/* Associated Contacts */}
-              <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
+              <div className="bg-white p-5 rounded-none border border-slate-100 shadow-sm flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
@@ -640,12 +640,12 @@ export default function Empresas({
                     {associatedContacts.map(con => {
                       const isExpanded = expandedContactId === con.id;
                       return (
-                        <div key={con.id} className="p-3 bg-slate-50 border border-slate-150 rounded-xl space-y-1.5 transition">
+                        <div key={con.id} className="p-3 bg-slate-50 border border-slate-150 rounded-none space-y-1.5 transition">
                           <div className="flex justify-between items-start">
                             <div className="cursor-pointer flex-1 text-left" onClick={() => setExpandedContactId(isExpanded ? null : con.id)}>
                               <span className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5 hover:text-orange-600 transition">
                                 {con.nome}
-                                <span className="text-[9px] text-orange-500 font-bold bg-orange-50 px-1.5 py-0.5 rounded-full select-none">
+                                <span className="text-[9px] text-orange-500 font-bold bg-orange-50 px-1.5 py-0.5 rounded-none select-none">
                                   {isExpanded ? '▲ Recolher' : '▼ Expandir'}
                                 </span>
                               </span>
@@ -656,7 +656,7 @@ export default function Empresas({
                                 href={`https://wa.me/${con.whatsapp.replace(/\s+/g, '')}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="text-[10px] bg-green-500 hover:bg-green-600 text-white font-bold px-1.5 py-0.5 rounded transition"
+                                className="text-[10px] bg-green-500 hover:bg-green-600 text-white font-bold px-1.5 py-0.5 rounded-none transition"
                               >
                                 WhatsApp
                               </a>
@@ -674,7 +674,7 @@ export default function Empresas({
                                 </span>
                               </div>
                               {con.observacoes && (
-                                <div className="p-2 bg-white rounded border border-slate-100 text-[10px] text-slate-550 italic font-medium">
+                                <div className="p-2 bg-white rounded-none border border-slate-100 text-[10px] text-slate-550 italic font-medium">
                                   Obs: {con.observacoes}
                                 </div>
                               )}
@@ -694,7 +694,7 @@ export default function Empresas({
               </div>
 
               {/* History Timeline */}
-              <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
+              <div className="bg-white p-5 rounded-none border border-slate-100 shadow-sm flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
@@ -720,12 +720,12 @@ export default function Empresas({
                       placeholder="Adicionar nota rápida de reunião ou ligação..."
                       value={newNoteText}
                       onChange={(e) => setNewNoteText(e.target.value)}
-                      className="flex-1 px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500"
+                      className="flex-1 px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-none focus:outline-none focus:ring-1 focus:ring-orange-500"
                     />
                     <button
                       type="submit"
                       disabled={!newNoteText.trim()}
-                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg cursor-pointer disabled:opacity-50"
+                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-none cursor-pointer disabled:opacity-50"
                     >
                       Salvar
                     </button>
@@ -742,13 +742,13 @@ export default function Empresas({
 
                       return (
                         <div key={hist.id} className="text-xs border-l-2 border-slate-200 pl-3 py-0.5 space-y-0.5 text-left relative">
-                          <div className="absolute w-2 h-2 rounded-full bg-slate-300 -left-[5px] top-1.5"></div>
+                          <div className="absolute w-2 h-2 rounded-none bg-slate-300 -left-[5px] top-1.5"></div>
                           <div className="flex items-center justify-between">
                             <span className="font-extrabold text-slate-800">{hist.autor}</span>
                             <span className="text-[10px] text-slate-400 font-mono">{formatDate(hist.data)}</span>
                           </div>
                           <p className="text-slate-600 font-medium mt-0.5">{hist.descricao}</p>
-                          <span className={`inline-block text-[9px] font-bold px-1.5 py-0.1.5 rounded-full ${badgeColor}`}>
+                          <span className={`inline-block text-[9px] font-bold px-1.5 py-0.1.5 rounded-none ${badgeColor}`}>
                             {hist.tipo.replace('_', ' ')}
                           </span>
                         </div>
@@ -766,14 +766,14 @@ export default function Empresas({
 
           </div>
         ) : (
-          <div className="bg-white p-12 text-center text-slate-400 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center gap-4">
+          <div className="bg-white p-12 text-center text-slate-400 rounded-none border border-slate-100 shadow-sm flex flex-col items-center justify-center gap-4">
             <p className="italic text-xs text-slate-400">
               Selecione uma empresa à esquerda para ver suas notas operacionais, canais, contactos e histórico.
             </p>
             {isSubmenuCollapsed && (
               <button
                 onClick={() => setIsSubmenuCollapsed(false)}
-                className="lg:hidden px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                className="lg:hidden px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-none flex items-center gap-1.5 transition cursor-pointer shadow-sm"
               >
                 <Menu className="w-4 h-4 text-orange-500" />
                 Abrir Diretório
@@ -793,7 +793,7 @@ export default function Empresas({
           }}
         >
           <div 
-            className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto text-left"
+            className="bg-white rounded-none shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-900 text-white">
@@ -816,7 +816,7 @@ export default function Empresas({
                     placeholder="Ex: Sodiba S.A."
                     value={newEmpName}
                     onChange={(e) => setNewEmpName(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-orange-500"
+                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-none focus:outline-none focus:border-orange-500"
                   />
                 </div>
 
@@ -827,7 +827,7 @@ export default function Empresas({
                     placeholder="Ex: Alimentar, Imobiliário"
                     value={newEmpNicho}
                     onChange={(e) => setNewEmpNicho(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-none"
                   />
                 </div>
 
@@ -839,7 +839,7 @@ export default function Empresas({
                     placeholder="Ex: +244 9..."
                     value={newEmpPhone}
                     onChange={(e) => setNewEmpPhone(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-orange-500"
+                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-none focus:outline-none focus:border-orange-500"
                   />
                 </div>
 
@@ -850,7 +850,7 @@ export default function Empresas({
                     placeholder="Ex: Luanda, Talatona"
                     value={newEmpCidade}
                     onChange={(e) => setNewEmpCidade(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-none"
                   />
                 </div>
 
@@ -861,7 +861,7 @@ export default function Empresas({
                     placeholder="Ex: Avenida Deolinda Rodrigues"
                     value={newEmpEndereco}
                     onChange={(e) => setNewEmpEndereco(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-none"
                   />
                 </div>
 
@@ -872,7 +872,7 @@ export default function Empresas({
                     placeholder="Ex: www.empresa.com"
                     value={newEmpWeb}
                     onChange={(e) => setNewEmpWeb(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-none"
                   />
                 </div>
 
@@ -883,7 +883,7 @@ export default function Empresas({
                     placeholder="username do instagram"
                     value={newEmpInsta}
                     onChange={(e) => setNewEmpInsta(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-none"
                   />
                 </div>
 
@@ -894,7 +894,7 @@ export default function Empresas({
                     placeholder="Alguma nota chave?"
                     value={newEmpObs}
                     onChange={(e) => setNewEmpObs(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-none"
                   ></textarea>
                 </div>
 
@@ -907,7 +907,7 @@ export default function Empresas({
                   <p className="text-[11px] text-slate-450">Ao cadastrar a empresa, pode adicionar um ou mais contactos directos que deseja associar na nossa base.</p>
 
                   {/* Inline Contacts Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200/60 text-left">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3 rounded-none border border-slate-200/60 text-left">
                     <div>
                       <label className="block text-[10px] font-bold text-slate-600 mb-1 font-sans">NOME COMPLETO</label>
                       <input
@@ -915,7 +915,7 @@ export default function Empresas({
                         placeholder="Ex: Manuel Antunes"
                         value={currConNome}
                         onChange={(e) => setCurrConNome(e.target.value)}
-                        className="w-full px-2.5 py-1 text-xs bg-white border border-slate-200 rounded focus:outline-none"
+                        className="w-full px-2.5 py-1 text-xs bg-white border border-slate-200 rounded-none focus:outline-none"
                       />
                     </div>
                     <div>
@@ -925,7 +925,7 @@ export default function Empresas({
                         placeholder="Ex: Sócio-Gerente"
                         value={currConCargo}
                         onChange={(e) => setCurrConCargo(e.target.value)}
-                        className="w-full px-2.5 py-1 text-xs bg-white border border-slate-200 rounded focus:outline-none"
+                        className="w-full px-2.5 py-1 text-xs bg-white border border-slate-200 rounded-none focus:outline-none"
                       />
                     </div>
                     <div>
@@ -935,7 +935,7 @@ export default function Empresas({
                         placeholder="Ex: m.antunes@empresa.com"
                         value={currConEmail}
                         onChange={(e) => setCurrConEmail(e.target.value)}
-                        className="w-full px-2.5 py-1 text-xs bg-white border border-slate-200 rounded focus:outline-none"
+                        className="w-full px-2.5 py-1 text-xs bg-white border border-slate-200 rounded-none focus:outline-none"
                       />
                     </div>
                     <div>
@@ -945,7 +945,7 @@ export default function Empresas({
                         placeholder="Ex: +244 9..."
                         value={currConTel}
                         onChange={(e) => setCurrConTel(e.target.value)}
-                        className="w-full px-2.5 py-1 text-xs bg-white border border-slate-200 rounded focus:outline-none"
+                        className="w-full px-2.5 py-1 text-xs bg-white border border-slate-200 rounded-none focus:outline-none"
                       />
                     </div>
                     <div>
@@ -955,7 +955,7 @@ export default function Empresas({
                         placeholder="Ex: +244 9..."
                         value={currConWhats}
                         onChange={(e) => setCurrConWhats(e.target.value)}
-                        className="w-full px-2.5 py-1 text-xs bg-white border border-slate-200 rounded focus:outline-none"
+                        className="w-full px-2.5 py-1 text-xs bg-white border border-slate-200 rounded-none focus:outline-none"
                       />
                     </div>
                     <div>
@@ -965,14 +965,14 @@ export default function Empresas({
                         placeholder="Ex: Prefere ligação directa"
                         value={currConObs}
                         onChange={(e) => setCurrConObs(e.target.value)}
-                        className="w-full px-2.5 py-1 text-xs bg-white border border-slate-200 rounded focus:outline-none"
+                        className="w-full px-2.5 py-1 text-xs bg-white border border-slate-200 rounded-none focus:outline-none"
                       />
                     </div>
                     <div className="sm:col-span-2 flex justify-end">
                       <button
                         type="button"
                         onClick={handleAddInlineContact}
-                        className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] rounded transition flex items-center gap-1 cursor-pointer"
+                        className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] rounded-none transition flex items-center gap-1 cursor-pointer"
                       >
                         <Plus className="w-3 h-3 text-orange-500" />
                         Adicionar à Lista
@@ -986,7 +986,7 @@ export default function Empresas({
                       <h5 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Contactos adicionados ({inlineContacts.length}):</h5>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {inlineContacts.map((c, i) => (
-                          <div key={i} className="p-2 bg-slate-50 border border-slate-250 rounded flex justify-between items-center text-xs">
+                          <div key={i} className="p-2 bg-slate-50 border border-slate-250 rounded-none flex justify-between items-center text-xs">
                             <div>
                               <p className="font-extrabold text-slate-800">{c.nome} <span className="font-normal text-slate-500 text-[10px]">({c.cargo || 'Geral'})</span></p>
                               <p className="text-[10px] text-slate-500 font-mono">{c.email}</p>
@@ -1013,13 +1013,13 @@ export default function Empresas({
                     setInlineContacts([]);
                     setShowCreateModal(false);
                   }}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 cursor-pointer"
+                  className="px-4 py-2 border border-slate-200 rounded-none text-xs font-bold text-slate-500 hover:bg-slate-50 cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-none text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5 text-orange-500" />
                   Salvar Registo
@@ -1037,7 +1037,7 @@ export default function Empresas({
           onClick={() => setShowEditModal(false)}
         >
           <div 
-            className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto text-left"
+            className="bg-white rounded-none shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-900 text-white">
@@ -1059,7 +1059,7 @@ export default function Empresas({
                     required
                     value={editEmpName}
                     onChange={(e) => setEditEmpName(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-none"
                   />
                 </div>
 
@@ -1069,7 +1069,7 @@ export default function Empresas({
                     type="text"
                     value={editEmpNicho}
                     onChange={(e) => setEditEmpNicho(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-none"
                   />
                 </div>
 
@@ -1080,7 +1080,7 @@ export default function Empresas({
                     required
                     value={editEmpPhone}
                     onChange={(e) => setEditEmpPhone(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-none"
                   />
                 </div>
 
@@ -1090,7 +1090,7 @@ export default function Empresas({
                     type="text"
                     value={editEmpCidade}
                     onChange={(e) => setEditEmpCidade(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-none"
                   />
                 </div>
 
@@ -1100,7 +1100,7 @@ export default function Empresas({
                     type="text"
                     value={editEmpEndereco}
                     onChange={(e) => setEditEmpEndereco(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-none"
                   />
                 </div>
 
@@ -1110,7 +1110,7 @@ export default function Empresas({
                     type="text"
                     value={editEmpWeb}
                     onChange={(e) => setEditEmpWeb(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-none"
                   />
                 </div>
 
@@ -1120,7 +1120,7 @@ export default function Empresas({
                     type="text"
                     value={editEmpInsta}
                     onChange={(e) => setEditEmpInsta(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-none"
                   />
                 </div>
 
@@ -1130,7 +1130,7 @@ export default function Empresas({
                     rows={3}
                     value={editEmpObs}
                     onChange={(e) => setEditEmpObs(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-none"
                   ></textarea>
                 </div>
               </div>
@@ -1139,13 +1139,13 @@ export default function Empresas({
                 <button
                   type="button"
                   onClick={() => setShowEditModal(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 cursor-pointer"
+                  className="px-4 py-2 border border-slate-200 rounded-none text-xs font-bold text-slate-500 hover:bg-slate-50 cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition cursor-pointer"
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-none text-xs font-bold transition cursor-pointer"
                 >
                   Confirmar Alterações
                 </button>
@@ -1162,7 +1162,7 @@ export default function Empresas({
           onClick={() => setShowAddContactModal(false)}
         >
           <div 
-            className="bg-white rounded-2xl shadow-xl w-full max-w-md text-left"
+            className="bg-white rounded-none shadow-xl w-full max-w-md text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-900 text-white">
@@ -1184,7 +1184,7 @@ export default function Empresas({
                   placeholder="Ex: Solange Neto"
                   value={newConNome}
                   onChange={(e) => setNewConNome(e.target.value)}
-                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg"
+                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-none"
                 />
               </div>
 
@@ -1195,7 +1195,7 @@ export default function Empresas({
                   placeholder="Ex: Directora Comercial"
                   value={newConCargo}
                   onChange={(e) => setNewConCargo(e.target.value)}
-                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg"
+                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-none"
                 />
               </div>
 
@@ -1208,7 +1208,7 @@ export default function Empresas({
                     placeholder="+244"
                     value={newConTel}
                     onChange={(e) => setNewConTel(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-none"
                   />
                 </div>
                 <div>
@@ -1218,7 +1218,7 @@ export default function Empresas({
                     placeholder="+244"
                     value={newConWhats}
                     onChange={(e) => setNewConWhats(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-none"
                   />
                 </div>
               </div>
@@ -1230,7 +1230,7 @@ export default function Empresas({
                   placeholder="exemplo@empresa.com"
                   value={newConEmail}
                   onChange={(e) => setNewConEmail(e.target.value)}
-                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg"
+                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-none"
                 />
               </div>
 
@@ -1241,7 +1241,7 @@ export default function Empresas({
                   placeholder="Ex: Prefere contacto por email"
                   value={newConObs}
                   onChange={(e) => setNewConObs(e.target.value)}
-                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg"
+                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-none"
                 ></textarea>
               </div>
 
@@ -1249,13 +1249,13 @@ export default function Empresas({
                 <button
                   type="button"
                   onClick={() => setShowAddContactModal(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 cursor-pointer"
+                  className="px-4 py-2 border border-slate-200 rounded-none text-xs font-bold text-slate-500 hover:bg-slate-50 cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition cursor-pointer"
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-none text-xs font-bold transition cursor-pointer"
                 >
                   Guardar Contacto
                 </button>
@@ -1272,7 +1272,7 @@ export default function Empresas({
           onClick={() => setShowLogsModal(false)}
         >
           <div 
-            className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden text-left"
+            className="bg-white rounded-none shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-900 text-white">
@@ -1300,13 +1300,13 @@ export default function Empresas({
 
                   return (
                     <div key={hist.id} className="relative pb-2">
-                      <div className="absolute w-3 h-3 rounded-full bg-slate-200 border-4 border-white -left-[22px] top-1"></div>
+                      <div className="absolute w-3 h-3 rounded-none bg-slate-200 border-4 border-white -left-[22px] top-1"></div>
                       <div className="flex items-center justify-between">
                         <span className="font-extrabold text-slate-800 text-sm">{hist.autor}</span>
                         <span className="text-[10px] text-slate-450 font-mono">{formatDate(hist.data)} {new Date(hist.data).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       <p className="text-slate-650 font-medium text-xs mt-1 leading-relaxed">{hist.descricao}</p>
-                      <span className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded-full border mt-1.5 uppercase tracking-wide ${badgeColor}`}>
+                      <span className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded-none border mt-1.5 uppercase tracking-wide ${badgeColor}`}>
                         {hist.tipo.replace('_', ' ')}
                       </span>
                     </div>
@@ -1318,7 +1318,7 @@ export default function Empresas({
             <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
               <button
                 onClick={() => setShowLogsModal(false)}
-                className="px-4 py-2 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-slate-800 transition cursor-pointer"
+                className="px-4 py-2 bg-slate-900 text-white font-bold text-xs rounded-none hover:bg-slate-800 transition cursor-pointer"
               >
                 Fechar
               </button>

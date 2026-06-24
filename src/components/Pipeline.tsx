@@ -89,6 +89,22 @@ export default function Pipeline({
   
   // Open dropdown states for rows
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number } | null>(null);
+
+  function toggleDropdown(id: string, e: React.MouseEvent<HTMLButtonElement>) {
+    if (openDropdownId === id) {
+      setOpenDropdownId(null);
+      setDropdownPos(null);
+    } else {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setDropdownPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+      setOpenDropdownId(id);
+    }
+  }
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Form fields for new Oportunidade
   const [newOptEmpresaId, setNewOptEmpresaId] = useState('');
@@ -175,6 +191,17 @@ export default function Pipeline({
       return true;
     });
   }, [oportunidades, filterResponsavel, filterServico, filterEtapa, dataInicio, dataFim]);
+
+  // Pagination bounds
+  const totalItems = filteredOportunidades.length;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+  const paginatedOportunidades = viewMode === 'table' 
+    ? filteredOportunidades.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+    : filteredOportunidades; // kanban shows all
+
+  React.useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(1);
+  }, [totalPages, pageSize, currentPage]);
 
   // Grouped by stage
   const colsData = useMemo(() => {
@@ -344,7 +371,7 @@ export default function Pipeline({
     <div id="pipeline-module" className="space-y-6">
 
       {/* Top filter toolbar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-wrap gap-4 items-center justify-between">
+      <div className="bg-white p-4 rounded-none border border-slate-100 shadow-sm flex flex-wrap gap-4 items-center justify-between">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-450 uppercase tracking-wider">
             <Filter className="w-4 h-4 text-orange-500" />
@@ -356,7 +383,7 @@ export default function Pipeline({
             <select
               value={filterResponsavel}
               onChange={(e) => setFilterResponsavel(e.target.value)}
-              className="bg-slate-50 border border-slate-200 text-xs text-slate-650 font-bold rounded px-2.5 py-1 focus:outline-none"
+              className="bg-slate-50 border border-slate-200 text-xs text-slate-650 font-bold rounded-none px-2.5 py-1 focus:outline-none"
             >
               <option value="todos">Todos os Responsáveis</option>
               {profiles.map(p => (
@@ -370,7 +397,7 @@ export default function Pipeline({
             <select
               value={filterServico}
               onChange={(e) => setFilterServico(e.target.value)}
-              className="bg-slate-50 border border-slate-200 text-xs text-slate-600 rounded px-2.5 py-1 focus:outline-none"
+              className="bg-slate-50 border border-slate-200 text-xs text-slate-600 rounded-none px-2.5 py-1 focus:outline-none"
             >
               <option value="todos">Todos os Serviços</option>
               {listServicos.map(s => (
@@ -384,7 +411,7 @@ export default function Pipeline({
             <select
               value={filterEtapa}
               onChange={(e) => setFilterEtapa(e.target.value)}
-              className="bg-slate-50 border border-slate-200 text-xs text-slate-650 font-bold rounded px-2.5 py-1 focus:outline-none"
+              className="bg-slate-50 border border-slate-200 text-xs text-slate-650 font-bold rounded-none px-2.5 py-1 focus:outline-none"
             >
               <option value="todos">Todas as Fases</option>
               {ETAPAS_ORDENADAS.map(e => (
@@ -398,30 +425,30 @@ export default function Pipeline({
               type="date" 
               value={dataInicio} 
               onChange={e => setDataInicio(e.target.value)}
-              className="bg-slate-50 border border-slate-200 text-xs text-slate-600 rounded px-2.5 py-1.5 focus:outline-none"
+              className="bg-slate-50 border border-slate-200 text-xs text-slate-600 rounded-none px-2.5 py-1.5 focus:outline-none"
             />
             <span className="text-xs text-slate-400 font-bold uppercase">Até:</span>
             <input 
               type="date" 
               value={dataFim} 
               onChange={e => setDataFim(e.target.value)}
-              className="bg-slate-50 border border-slate-200 text-xs text-slate-600 rounded px-2.5 py-1.5 focus:outline-none"
+              className="bg-slate-50 border border-slate-200 text-xs text-slate-600 rounded-none px-2.5 py-1.5 focus:outline-none"
             />
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Visual Mode Selector */}
-          <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+          <div className="flex bg-slate-100 p-0.5 rounded-none border border-slate-200">
             <button
               onClick={() => setViewMode('table')}
-              className={`px-3 py-1 text-[11px] font-black rounded text-slate-800 transition cursor-pointer select-none ${viewMode === 'table' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`px-3 py-1 text-[11px] font-black rounded-none text-slate-800 transition cursor-pointer select-none ${viewMode === 'table' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
               Tabela (Fácil Avanço)
             </button>
             <button
               onClick={() => setViewMode('kanban')}
-              className={`px-3 py-1 text-[11px] font-black rounded text-slate-800 transition cursor-pointer select-none ${viewMode === 'kanban' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`px-3 py-1 text-[11px] font-black rounded-none text-slate-800 transition cursor-pointer select-none ${viewMode === 'kanban' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
               Kanban Board
             </button>
@@ -437,14 +464,14 @@ export default function Pipeline({
               setNewOptResponsavel(profiles[0]?.nome || '');
               setShowAddModal(true);
             }}
-            className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+            className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-none flex items-center gap-1.5 transition cursor-pointer"
           >
             <Plus className="w-4 h-4 text-orange-500" />
             Captar Lead
           </button>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-2 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg flex items-center gap-0.5 transition cursor-pointer"
+            className="px-2 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-none flex items-center gap-0.5 transition cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 text-orange-500" />
             Nova Empresa
@@ -454,7 +481,27 @@ export default function Pipeline({
 
       {/* Interactive Layout Content */}
       {viewMode === 'table' ? (
-        <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden text-left">
+        <div className="bg-white rounded-none border border-slate-200/80 shadow-sm overflow-hidden text-left">
+          {/* Table Toolbar */}
+          <div className="p-3 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-slate-500 uppercase">Mostrar</span>
+              <select 
+                value={pageSize} 
+                onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                className="text-[10px] border border-slate-200 rounded-none p-1 focus:outline-none"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+              <span className="text-[10px] font-bold text-slate-500 uppercase">linhas</span>
+            </div>
+            <div className="text-[10px] font-bold text-slate-500">
+              Mostrando {Math.min((currentPage - 1) * pageSize + 1, totalItems)} a {Math.min(currentPage * pageSize, totalItems)} de {totalItems} registos
+            </div>
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -470,7 +517,7 @@ export default function Pipeline({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs text-slate-705">
-                {filteredOportunidades.map(lead => {
+                {paginatedOportunidades.map(lead => {
                   const empVal = empresas.find(e => e.id === lead.empresa_id);
                   const currentIndex = ETAPAS_ORDENADAS.indexOf(lead.etapa);
                   const canAdvance = currentIndex < ETAPAS_ORDENADAS.length - 2;
@@ -499,7 +546,7 @@ export default function Pipeline({
                         {new Date(lead.data_entrada).toLocaleDateString('pt-AO')}
                       </td>
                       <td className="px-5 py-3">
-                        <span className="bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded text-[10px] uppercase">
+                        <span className="bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded-none text-[10px] uppercase">
                           {lead.servico}
                         </span>
                       </td>
@@ -510,13 +557,13 @@ export default function Pipeline({
                         {lead.responsavel}
                       </td>
                       <td className="px-4 py-4 text-slate-500 font-medium">
-                        <span className="text-[10px] uppercase font-mono bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] uppercase font-mono bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded-none">
                           {lead.origem}
                         </span>
                       </td>
                       <td className="px-5 py-4 text-center">
                         <div className="inline-flex flex-col items-center gap-0.5">
-                          <span className={`px-2.5 py-1 rounded-full text-[9px] font-extrabold tracking-wide uppercase ${badgeBg}`}>
+                          <span className={`px-2.5 py-1 rounded-none text-[9px] font-extrabold tracking-wide uppercase ${badgeBg}`}>
                             {lead.etapa}
                           </span>
                           {lead.etapa === 'Perdido' && lead.motivo_perda && (
@@ -529,27 +576,30 @@ export default function Pipeline({
                       <td className="px-5 py-3 text-right">
                         <div className="relative inline-block text-left">
                           <button
-                            onClick={() => setOpenDropdownId(isDropdownOpen ? null : lead.id)}
-                            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
+                            onClick={(e) => toggleDropdown(lead.id, e)}
+                            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-none transition"
                           >
                             <MoreVertical className="w-4 h-4" />
                           </button>
 
-                          {isDropdownOpen && (
+                          {isDropdownOpen && dropdownPos && (
                             <>
-                              <div className="fixed inset-0 z-10" onClick={() => setOpenDropdownId(null)}></div>
-                              <div className="absolute right-0 mt-1 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-20 py-1 flex flex-col text-left font-semibold text-xs">
+                              <div className="fixed inset-0 z-40" onClick={() => { setOpenDropdownId(null); setDropdownPos(null); }}></div>
+                              <div
+                                style={{ top: dropdownPos.top, right: dropdownPos.right }}
+                                className="fixed w-56 bg-white border border-slate-200 rounded-none shadow-xl z-50 py-1 flex flex-col text-left font-semibold text-xs"
+                              >
                                 
                                 <button
-                                  onClick={() => { setOpenDropdownId(null); setPhoneModalLead(lead); }}
+                                  onClick={() => { setOpenDropdownId(null); setDropdownPos(null); setPhoneModalLead(lead); }}
                                   className="px-4 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2 w-full text-left"
                                 >
-                                  <Phone className="w-4 h-4 text-orange-500" /> Detalhes & Contactos
+                                  <Phone className="w-4 h-4 text-orange-500" /> Detalhes &amp; Contactos
                                 </button>
 
                                 {canAdvance && (
                                   <button
-                                    onClick={() => { setOpenDropdownId(null); handleAdvanceEtapa(lead); }}
+                                    onClick={() => { setOpenDropdownId(null); setDropdownPos(null); handleAdvanceEtapa(lead); }}
                                     className="px-4 py-2 hover:bg-slate-50 text-emerald-600 flex items-center gap-2 w-full text-left"
                                   >
                                     <ArrowRight className="w-4 h-4" /> Avançar Fase
@@ -560,8 +610,8 @@ export default function Pipeline({
                                   <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Mudar Etapa Manual</span>
                                   <select
                                     value={lead.etapa}
-                                    onChange={(e) => { setOpenDropdownId(null); requestStageUpdate(lead.id, e.target.value as PipelineEtapa); }}
-                                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded p-1"
+                                    onChange={(e) => { setOpenDropdownId(null); setDropdownPos(null); requestStageUpdate(lead.id, e.target.value as PipelineEtapa); }}
+                                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-none p-1"
                                   >
                                     {ETAPAS_ORDENADAS.map(et => (
                                       <option key={et} value={et}>{et}</option>
@@ -571,7 +621,7 @@ export default function Pipeline({
 
                                 {lead.etapa !== 'Fechado' && lead.etapa !== 'Perdido' && (
                                   <button
-                                    onClick={() => { setOpenDropdownId(null); requestStageUpdate(lead.id, 'Perdido'); }}
+                                    onClick={() => { setOpenDropdownId(null); setDropdownPos(null); requestStageUpdate(lead.id, 'Perdido'); }}
                                     className="px-4 py-2 mt-1 hover:bg-red-50 text-red-600 flex items-center gap-2 w-full text-left border-t border-slate-100"
                                   >
                                     ✕ Marcar como Perdido
@@ -581,6 +631,7 @@ export default function Pipeline({
                                 <button
                                   onClick={() => {
                                     setOpenDropdownId(null);
+                                    setDropdownPos(null);
                                     if (confirm('Eliminar esta oportunidade do histórico?')) {
                                       onDeleteOportunidade(lead.id);
                                     }
@@ -599,16 +650,39 @@ export default function Pipeline({
                   );
                 })}
 
-                {filteredOportunidades.length === 0 && (
+                {paginatedOportunidades.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center text-slate-400 italic bg-white">
-                      Nenhum negócio ativo ou correspondente aos filtros.
+                    <td colSpan={8} className="px-5 py-12 text-center text-slate-400 italic bg-white">
+                      Nenhum registo encontrado com os filtros actuais.
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
+          
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="p-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+              <button 
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 bg-white border border-slate-200 rounded-none text-xs font-bold text-slate-600 disabled:opacity-50"
+              >
+                Anterior
+              </button>
+              <div className="text-[10px] font-bold text-slate-500">
+                Página {currentPage} de {totalPages}
+              </div>
+              <button 
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 bg-white border border-slate-200 rounded-none text-xs font-bold text-slate-600 disabled:opacity-50"
+              >
+                Próxima
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex gap-4 overflow-x-auto pb-4 items-start min-h-[550px]">
@@ -632,15 +706,15 @@ export default function Pipeline({
                 key={etapa}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, etapa)}
-                className="w-72 shrink-0 bg-slate-50 p-3 rounded-2xl border border-slate-200/60 min-h-[500px] flex flex-col transition-all duration-200"
+                className="w-72 shrink-0 bg-slate-50 p-3 rounded-none border border-slate-200/60 min-h-[500px] flex flex-col transition-all duration-200"
               >
                 {/* Column Header */}
-                <div className={`p-2.5 rounded-xl mb-3 space-y-1 ${columnHeaderBg}`}>
+                <div className={`p-2.5 rounded-none mb-3 space-y-1 ${columnHeaderBg}`}>
                   <div className="flex justify-between items-center">
                     <span className={`text-xs font-black tracking-tight uppercase ${titleColor}`}>
                       {etapa}
                     </span>
-                    <span className="text-[10px] bg-white font-bold text-slate-500 px-1.5 py-0.5 rounded-full shadow-sm">
+                    <span className="text-[10px] bg-white font-bold text-slate-500 px-1.5 py-0.5 rounded-none shadow-sm">
                       {col.leads.length}
                     </span>
                   </div>
@@ -659,11 +733,11 @@ export default function Pipeline({
                         key={lead.id}
                         draggable
                         onDragStart={(e) => handleDragStart(e, lead.id)}
-                        className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md hover:border-orange-200 transition cursor-grab active:cursor-grabbing text-left space-y-2.5 group relative"
+                        className="bg-white p-4 rounded-none border border-slate-100 shadow-sm hover:shadow-md hover:border-orange-200 transition cursor-grab active:cursor-grabbing text-left space-y-2.5 group relative"
                       >
                         {/* Top labels */}
                         <div className="flex justify-between items-start gap-1">
-                          <span className="text-[10px] bg-slate-100 text-slate-700 font-extrabold px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] bg-slate-100 text-slate-700 font-extrabold px-1.5 py-0.5 rounded-none">
                             {lead.servico}
                           </span>
 
@@ -672,7 +746,7 @@ export default function Pipeline({
                             <select
                               value={lead.etapa}
                               onChange={(e) => requestStageUpdate(lead.id, e.target.value as PipelineEtapa)}
-                              className="text-[9px] bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded px-1 text-slate-600 focus:outline-none cursor-pointer"
+                              className="text-[9px] bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-none px-1 text-slate-600 focus:outline-none cursor-pointer"
                             >
                               {ETAPAS_ORDENADAS.map(et => (
                                 <option key={et} value={et}>{et}</option>
@@ -685,7 +759,7 @@ export default function Pipeline({
                                   onDeleteOportunidade(lead.id);
                                 }
                               }}
-                              className="text-slate-350 hover:text-red-500 rounded p-0.5 opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                              className="text-slate-350 hover:text-red-500 rounded-none p-0.5 opacity-0 group-hover:opacity-100 transition cursor-pointer"
                               title="Remover Lead"
                             >
                               <Trash2 className="w-3 h-3" />
@@ -709,7 +783,7 @@ export default function Pipeline({
                           <span className="text-xs font-black text-indigo-950 font-mono">
                             {formatKwanzaFull(lead.valor_estimado)}
                           </span>
-                          <span className="text-[9px] bg-orange-50 text-orange-655 font-bold px-1.5 rounded-full uppercase tracking-wider">
+                          <span className="text-[9px] bg-orange-50 text-orange-655 font-bold px-1.5 rounded-none uppercase tracking-wider">
                             {lead.origem}
                           </span>
                         </div>
@@ -720,7 +794,7 @@ export default function Pipeline({
                             e.stopPropagation();
                             setPhoneModalLead(lead);
                           }}
-                          className="w-full mt-1.5 py-1.5 bg-slate-50 hover:bg-orange-50 text-slate-700 hover:text-orange-600 font-extrabold text-[10px] uppercase rounded-lg border border-slate-205 hover:border-orange-200 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                          className="w-full mt-1.5 py-1.5 bg-slate-50 hover:bg-orange-50 text-slate-700 hover:text-orange-600 font-extrabold text-[10px] uppercase rounded-none border border-slate-205 hover:border-orange-200 transition flex items-center justify-center gap-1.5 cursor-pointer"
                           title="Ligar para Contactos"
                         >
                           <Phone className="w-3 h-3 text-orange-500" />
@@ -729,7 +803,7 @@ export default function Pipeline({
 
                         {/* Loss Reason details display on card */}
                         {lead.etapa === 'Perdido' && lead.motivo_perda && (
-                          <div className="p-1 px-2 bg-red-50 rounded text-[9px] text-red-650 font-medium">
+                          <div className="p-1 px-2 bg-red-50 rounded-none text-[9px] text-red-650 font-medium">
                             Motivo: <span className="font-bold">{lead.motivo_perda}</span>
                             {lead.motivo_perda_detalhe && (
                               <p className="italic text-[8px] mt-0.5">"{lead.motivo_perda_detalhe}"</p>
@@ -741,7 +815,7 @@ export default function Pipeline({
                   })}
 
                   {col.leads.length === 0 && (
-                    <div className="border border-dashed border-slate-200 rounded-xl p-6 text-center text-slate-350 text-[11px] italic">
+                    <div className="border border-dashed border-slate-200 rounded-none p-6 text-center text-slate-350 text-[11px] italic">
                       Nenhum negócio ativo
                     </div>
                   )}
@@ -759,7 +833,7 @@ export default function Pipeline({
           onClick={() => setShowAddModal(false)}
         >
           <div 
-            className="bg-white rounded-2xl shadow-xl w-full max-w-md"
+            className="bg-white rounded-none shadow-xl w-full max-w-md"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-5 border-b border-slate-100 bg-slate-900 text-white flex justify-between items-center">
@@ -780,7 +854,7 @@ export default function Pipeline({
                   required
                   value={newOptEmpresaId}
                   onChange={(e) => setNewOptEmpresaId(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-none focus:outline-none"
                 >
                   <option value="" disabled>Escolha do directório...</option>
                   {empresas.map(emp => (
@@ -794,7 +868,7 @@ export default function Pipeline({
                 <select
                   value={newOptServico}
                   onChange={(e) => setNewOptServico(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none text-slate-700 font-medium"
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-none focus:outline-none text-slate-700 font-medium"
                 >
                   {listServicos.map(s => (
                     <option key={s} value={s}>{s}</option>
@@ -809,7 +883,7 @@ export default function Pipeline({
                   required
                   value={newOptValor}
                   onChange={(e) => setNewOptValor(Number(e.target.value))}
-                  className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm"
+                  className="w-full px-3 py-1.5 border border-slate-200 rounded-none text-sm"
                 />
               </div>
 
@@ -819,7 +893,7 @@ export default function Pipeline({
                   <select
                     value={newOptResponsavel}
                     onChange={(e) => setNewOptResponsavel(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
+                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-none focus:outline-none"
                   >
                     {profiles.map(p => (
                       <option key={p.id} value={p.nome}>{p.nome}</option>
@@ -832,7 +906,7 @@ export default function Pipeline({
                   <select
                     value={newOptOrigem}
                     onChange={(e) => setNewOptOrigem(e.target.value as OrigemLead)}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-none"
                   >
                     {listOrigens.map(ori => (
                       <option key={ori} value={ori}>{ori}</option>
@@ -848,7 +922,7 @@ export default function Pipeline({
                   placeholder="Ex: Pediram orçamento urgente."
                   value={newOptObs}
                   onChange={(e) => setNewOptObs(e.target.value)}
-                  className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                  className="w-full px-3 py-1.5 border border-slate-200 rounded-none text-xs"
                 ></textarea>
               </div>
 
@@ -856,13 +930,13 @@ export default function Pipeline({
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 cursor-pointer"
+                  className="px-4 py-2 border border-slate-200 rounded-none text-xs font-bold text-slate-500 hover:bg-slate-50 cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition cursor-pointer"
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-none text-xs font-bold transition cursor-pointer"
                 >
                   Confirmar Captura
                 </button>
@@ -885,7 +959,7 @@ export default function Pipeline({
           }}
         >
           <div 
-            className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"
+            className="bg-white rounded-none shadow-xl w-full max-w-sm overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 bg-red-600 text-white flex justify-between items-center">
@@ -913,7 +987,7 @@ export default function Pipeline({
                   required
                   value={perdaMotivo}
                   onChange={(e) => setPerdaMotivo(e.target.value as MotivoPerda)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-none focus:outline-none"
                 >
                   {listMotivosPerda.map(mot => (
                     <option key={mot} value={mot}>{mot}</option>
@@ -928,7 +1002,7 @@ export default function Pipeline({
                   placeholder="Ex: Disse que o concorrente X ofereceu plano gratuito de redes sociais."
                   value={perdaMotivoDetalhe}
                   onChange={(e) => setPerdaMotivoDetalhe(e.target.value)}
-                  className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                  className="w-full px-3 py-1.5 border border-slate-200 rounded-none text-xs"
                 ></textarea>
               </div>
 
@@ -940,13 +1014,13 @@ export default function Pipeline({
                     setPerdaLeadId(null);
                     setPendingEtapaChange(null);
                   }}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-500 hover:bg-slate-50"
+                  className="px-4 py-2 border border-slate-200 rounded-none text-[10px] font-bold text-slate-500 hover:bg-slate-50"
                 >
                   Voltar atrás
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-[10px] font-bold transition uppercase cursor-pointer"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-none text-[10px] font-bold transition uppercase cursor-pointer"
                 >
                   Marcar Negócio Perdido
                 </button>
@@ -970,12 +1044,12 @@ export default function Pipeline({
             onClick={() => setPhoneModalLead(null)}
           >
             <div 
-              className="bg-white rounded-2xl shadow-xl w-full max-w-lg border border-slate-100 overflow-hidden text-left"
+              className="bg-white rounded-none shadow-xl w-full max-w-lg border border-slate-100 overflow-hidden text-left"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-5 border-b border-slate-100 bg-slate-950 text-white flex justify-between items-center">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-1.5 bg-slate-900 rounded-lg text-orange-500">
+                  <div className="p-1.5 bg-slate-900 rounded-none text-orange-500">
                     <Phone className="w-5 h-5" />
                   </div>
                   <div>
@@ -989,7 +1063,7 @@ export default function Pipeline({
                 </div>
                 <button
                   onClick={() => setPhoneModalLead(null)}
-                  className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition cursor-pointer"
+                  className="p-1.5 hover:bg-slate-800 rounded-none text-slate-400 hover:text-white transition cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1001,7 +1075,7 @@ export default function Pipeline({
                 </div>
 
                 {currentEmpresa?.telefone_principal ? (
-                  <div className="flex items-center justify-between p-3 bg-slate-50 hover:bg-orange-50/20 border border-slate-200 rounded-xl transition">
+                  <div className="flex items-center justify-between p-3 bg-slate-50 hover:bg-orange-50/20 border border-slate-200 rounded-none transition">
                     <div>
                       <p className="font-extrabold text-xs text-slate-900">Linha Principal / Geral</p>
                       <p className="text-[10px] text-slate-400 mt-0.5">Telefone Comercial Registado</p>
@@ -1010,14 +1084,14 @@ export default function Pipeline({
                     <div>
                       <a
                         href={`tel:${currentEmpresa.telefone_principal}`}
-                        className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-slate-950 font-black text-[10px] uppercase rounded-lg shadow-sm transition inline-flex items-center gap-1 cursor-pointer"
+                        className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-slate-950 font-black text-[10px] uppercase rounded-none shadow-sm transition inline-flex items-center gap-1 cursor-pointer"
                       >
                         <Phone className="w-3.5 h-3.5" /> Ligar
                       </a>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-[10px] text-slate-500 italic p-3 bg-slate-50 rounded-xl">Nenhum telefone comercial geral registado.</p>
+                  <p className="text-[10px] text-slate-500 italic p-3 bg-slate-50 rounded-none">Nenhum telefone comercial geral registado.</p>
                 )}
 
                 <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pt-2 pb-1.5">
@@ -1027,10 +1101,10 @@ export default function Pipeline({
                 {relatedContacts.length > 0 ? (
                   <div className="space-y-2.5">
                     {relatedContacts.map(con => (
-                      <div key={con.id} className="p-3 border border-slate-200 rounded-xl bg-white hover:border-orange-200 hover:bg-orange-50/10 transition space-y-2.5">
+                      <div key={con.id} className="p-3 border border-slate-200 rounded-none bg-white hover:border-orange-200 hover:bg-orange-50/10 transition space-y-2.5">
                         <div className="flex justify-between items-start">
                           <div>
-                            <span className="text-[8px] font-black bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full uppercase tracking-wider">{con.cargo || 'Directório'}</span>
+                            <span className="text-[8px] font-black bg-slate-100 text-slate-600 px-2 py-0.5 rounded-none uppercase tracking-wider">{con.cargo || 'Directório'}</span>
                             <h4 className="font-black text-slate-900 text-xs mt-1">{con.nome}</h4>
                             <p className="text-[10.5px] font-mono text-slate-700 font-bold mt-1">{con.telefone}</p>
                             {con.email && (
@@ -1046,7 +1120,7 @@ export default function Pipeline({
                                 href={`https://wa.me/${con.whatsapp.replace(/\s+/g, '')}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 hover:text-emerald-700 rounded-lg border border-emerald-200 transition cursor-pointer flex items-center justify-center"
+                                className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 hover:text-emerald-700 rounded-none border border-emerald-200 transition cursor-pointer flex items-center justify-center"
                                 title="WhatsApp Directo"
                               >
                                 <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
@@ -1056,7 +1130,7 @@ export default function Pipeline({
                             )}
                             <a
                               href={`tel:${con.telefone}`}
-                              className="px-2.5 py-1.5 bg-orange-500 hover:bg-orange-600 text-slate-950 font-black text-[10px] uppercase rounded-lg shadow-sm transition inline-flex items-center gap-1 cursor-pointer"
+                              className="px-2.5 py-1.5 bg-orange-500 hover:bg-orange-600 text-slate-950 font-black text-[10px] uppercase rounded-none shadow-sm transition inline-flex items-center gap-1 cursor-pointer"
                               title="Ligar para telemóveis"
                             >
                               <Phone className="w-3.5 h-3.5" /> Ligar
@@ -1065,7 +1139,7 @@ export default function Pipeline({
                         </div>
 
                         {con.observacoes && (
-                          <div className="text-[9px] text-slate-500 bg-slate-50 p-2 rounded-lg italic">
+                          <div className="text-[9px] text-slate-500 bg-slate-50 p-2 rounded-none italic">
                             Obs: "{con.observacoes}"
                           </div>
                         )}
@@ -1073,7 +1147,7 @@ export default function Pipeline({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-[10px] text-slate-500 italic p-3 bg-slate-50 rounded-xl">Esta empresa ainda não possui decisores/contactos secundários registados no diretório comercial.</p>
+                  <p className="text-[10px] text-slate-500 italic p-3 bg-slate-50 rounded-none">Esta empresa ainda não possui decisores/contactos secundários registados no diretório comercial.</p>
                 )}
               </div>
 
@@ -1081,7 +1155,7 @@ export default function Pipeline({
                 <button
                   type="button"
                   onClick={() => setPhoneModalLead(null)}
-                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs rounded-lg transition overflow-hidden cursor-pointer"
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs rounded-none transition overflow-hidden cursor-pointer"
                 >
                   Fechar
                 </button>
@@ -1098,7 +1172,7 @@ export default function Pipeline({
           onClick={() => setShowCreateModal(false)}
         >
           <div 
-            className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto text-left"
+            className="bg-white rounded-none shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-900 text-white">
@@ -1121,7 +1195,7 @@ export default function Pipeline({
                     placeholder="Ex: Sodiba S.A."
                     value={newEmpName}
                     onChange={(e) => setNewEmpName(e.target.value)}
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:border-orange-500"
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-none focus:outline-none focus:border-orange-500"
                   />
                 </div>
 
@@ -1132,7 +1206,7 @@ export default function Pipeline({
                     placeholder="Ex: Alimentar, Imobiliário"
                     value={newEmpNicho}
                     onChange={(e) => setNewEmpNicho(e.target.value)}
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-none"
                   />
                 </div>
 
@@ -1144,7 +1218,7 @@ export default function Pipeline({
                     placeholder="Ex: +244 9..."
                     value={newEmpPhone}
                     onChange={(e) => setNewEmpPhone(e.target.value)}
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:border-orange-500"
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-none focus:outline-none focus:border-orange-500"
                   />
                 </div>
 
@@ -1155,7 +1229,7 @@ export default function Pipeline({
                     placeholder="Ex: Luanda"
                     value={newEmpCidade}
                     onChange={(e) => setNewEmpCidade(e.target.value)}
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-none"
                   />
                 </div>
 
@@ -1166,7 +1240,7 @@ export default function Pipeline({
                     placeholder="Ex: Talatona"
                     value={newEmpEndereco}
                     onChange={(e) => setNewEmpEndereco(e.target.value)}
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-none"
                   />
                 </div>
 
@@ -1177,7 +1251,7 @@ export default function Pipeline({
                     placeholder="Ex: www.empresa.com"
                     value={newEmpWeb}
                     onChange={(e) => setNewEmpWeb(e.target.value)}
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-none"
                   />
                 </div>
 
@@ -1188,7 +1262,7 @@ export default function Pipeline({
                     placeholder="Ex: @empresa"
                     value={newEmpInsta}
                     onChange={(e) => setNewEmpInsta(e.target.value)}
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-none"
                   />
                 </div>
 
@@ -1199,7 +1273,7 @@ export default function Pipeline({
                     placeholder="Alguma nota chave?"
                     value={newEmpObs}
                     onChange={(e) => setNewEmpObs(e.target.value)}
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-none"
                   ></textarea>
                 </div>
 
@@ -1209,7 +1283,7 @@ export default function Pipeline({
                     <User className="w-4 h-4 text-orange-500" />
                     Contacto Associado (Opcional)
                   </h4>
-                  <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                  <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-none border border-slate-200/60">
                     <div>
                       <label className="block text-[9px] font-bold text-slate-650 mb-0.5">Nome do Contacto</label>
                       <input
@@ -1217,7 +1291,7 @@ export default function Pipeline({
                         placeholder="Ex: Pedro Santos"
                         value={newEmpConNome}
                         onChange={(e) => setNewEmpConNome(e.target.value)}
-                        className="w-full px-2.5 py-1 border border-slate-200 rounded focus:outline-none"
+                        className="w-full px-2.5 py-1 border border-slate-200 rounded-none focus:outline-none"
                       />
                     </div>
                     <div>
@@ -1227,7 +1301,7 @@ export default function Pipeline({
                         placeholder="Ex: Gestor"
                         value={newEmpConCargo}
                         onChange={(e) => setNewEmpConCargo(e.target.value)}
-                        className="w-full px-2.5 py-1 border border-slate-200 rounded"
+                        className="w-full px-2.5 py-1 border border-slate-200 rounded-none"
                       />
                     </div>
                     <div>
@@ -1237,7 +1311,7 @@ export default function Pipeline({
                         placeholder="Ex: pedro@empresa.com"
                         value={newEmpConEmail}
                         onChange={(e) => setNewEmpConEmail(e.target.value)}
-                        className="w-full px-2.5 py-1 border border-slate-200 rounded focus:outline-none"
+                        className="w-full px-2.5 py-1 border border-slate-200 rounded-none focus:outline-none"
                       />
                     </div>
                     <div>
@@ -1247,7 +1321,7 @@ export default function Pipeline({
                         placeholder="Ex: 923..."
                         value={newEmpConTel}
                         onChange={(e) => setNewEmpConTel(e.target.value)}
-                        className="w-full px-2.5 py-1 border border-slate-200 rounded focus:outline-none"
+                        className="w-full px-2.5 py-1 border border-slate-200 rounded-none focus:outline-none"
                       />
                     </div>
                   </div>
@@ -1258,13 +1332,13 @@ export default function Pipeline({
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 cursor-pointer"
+                  className="px-4 py-2 border border-slate-200 rounded-none text-xs font-bold text-slate-500 hover:bg-slate-50 cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-none text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
                 >
                   Salvar Empresa
                 </button>

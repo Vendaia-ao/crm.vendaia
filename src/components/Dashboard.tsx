@@ -205,7 +205,7 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
     <div id="dashboard-module" className="space-y-6 text-left">
       
       {/* Filters bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-wrap gap-4 items-center justify-between">
+      <div className="bg-white p-4 rounded-none border border-slate-100 shadow-sm flex flex-wrap gap-4 items-center justify-between">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
             <Sliders className="w-4 h-4 text-orange-500" />
@@ -219,14 +219,14 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
               type="date" 
               value={dataInicio} 
               onChange={e => setDataInicio(e.target.value)}
-              className="bg-slate-50 border border-slate-200 text-[10px] text-slate-600 rounded px-2 py-1.5 focus:outline-none"
+              className="bg-slate-50 border border-slate-200 text-[10px] text-slate-600 rounded-none px-2 py-1.5 focus:outline-none"
             />
             <span className="text-[10px] text-slate-400 font-bold uppercase">Até:</span>
             <input 
               type="date" 
               value={dataFim} 
               onChange={e => setDataFim(e.target.value)}
-              className="bg-slate-50 border border-slate-200 text-[10px] text-slate-600 rounded px-2 py-1.5 focus:outline-none"
+              className="bg-slate-50 border border-slate-200 text-[10px] text-slate-600 rounded-none px-2 py-1.5 focus:outline-none"
             />
           </div>
 
@@ -236,7 +236,7 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
             <select
               value={filterResponsavel}
               onChange={(e) => setFilterResponsavel(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded px-2.5 py-1 text-xs text-slate-700 font-medium focus:outline-none"
+              className="bg-slate-50 border border-slate-200 rounded-none px-2.5 py-1 text-xs text-slate-700 font-medium focus:outline-none"
             >
               <option value="todos">Todos os Responsáveis</option>
               {responsaveis.map(resp => (
@@ -251,7 +251,7 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
             <select
               value={filterServico}
               onChange={(e) => setFilterServico(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded px-2.5 py-1 text-xs text-slate-700 font-medium focus:outline-none"
+              className="bg-slate-50 border border-slate-200 rounded-none px-2.5 py-1 text-xs text-slate-700 font-medium focus:outline-none"
             >
               <option value="todos">Todos os Serviços</option>
               {servicos.map(s => (
@@ -266,7 +266,7 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
             <select
               value={filterNicho}
               onChange={(e) => setFilterNicho(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded px-2.5 py-1 text-xs text-slate-700 font-medium focus:outline-none"
+              className="bg-slate-50 border border-slate-200 rounded-none px-2.5 py-1 text-xs text-slate-700 font-medium focus:outline-none"
             >
               <option value="todos">Todos os Nichos</option>
               {nichos.map(n => (
@@ -279,7 +279,7 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
         {(filterResponsavel !== 'todos' || filterServico !== 'todos' || filterNicho !== 'todos' || dataInicio || dataFim) && (
           <button
             onClick={resetFilters}
-            className="text-xs font-semibold text-orange-500 hover:text-orange-600 bg-orange-50 hover:bg-orange-100/50 px-3 py-1.5 rounded-lg transition"
+            className="text-xs font-semibold text-orange-500 hover:text-orange-600 bg-orange-50 hover:bg-orange-100/50 px-3 py-1.5 rounded-none transition"
           >
             Limpar Filtros
           </button>
@@ -288,7 +288,7 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
 
       {/* Top Level KPIs - Financeiro */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden">
+        <div className="bg-white p-5 rounded-none border border-slate-100 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-5">
             <DollarSign className="w-16 h-16 text-slate-900" />
           </div>
@@ -297,7 +297,7 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
           <p className="text-[11px] text-slate-400 mt-2">Valor acumulado dos negócios em etapa <span className="font-semibold text-emerald-600">Fechado</span>.</p>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden">
+        <div className="bg-white p-5 rounded-none border border-slate-100 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-5">
             <TrendingUp className="w-16 h-16 text-slate-900" />
           </div>
@@ -306,7 +306,7 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
           <p className="text-[11px] text-slate-400 mt-2">Valor estimado de leads activos em negociação.</p>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden">
+        <div className="bg-white p-5 rounded-none border border-slate-100 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-5">
             <Activity className="w-16 h-16 text-slate-900" />
           </div>
@@ -320,7 +320,7 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* Ranked billing per service */}
-        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
+        <div className="bg-white p-6 rounded-none border border-slate-100 shadow-sm flex flex-col justify-between">
           <div>
             <h4 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-5 flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-orange-500 animate-pulse" />
@@ -340,9 +340,9 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
                       </span>
                       <span className="font-extrabold text-slate-900">{formatKwanza(valor)}</span>
                     </div>
-                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                    <div className="w-full bg-slate-100 h-2.5 rounded-none overflow-hidden">
                       <div 
-                        className="bg-indigo-600 h-full rounded-full transition-all duration-500 bg-gradient-to-r from-blue-500 to-indigo-600" 
+                        className="bg-indigo-600 h-full rounded-none transition-all duration-500 bg-gradient-to-r from-blue-500 to-indigo-600" 
                         style={{ width: `${percentage}%` }}
                       ></div>
                     </div>
@@ -364,7 +364,7 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
         </div>
 
         {/* Ranked client revenue list */}
-        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
+        <div className="bg-white p-6 rounded-none border border-slate-100 shadow-sm flex flex-col justify-between">
           <div>
             <h4 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-5 flex items-center gap-2">
               <Users className="w-4 h-4 text-orange-500" />
@@ -379,16 +379,16 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
                   <div key={clienteName} className="space-y-1">
                     <div className="flex justify-between text-xs font-semibold text-slate-700">
                       <span className="flex items-center gap-1.5">
-                        <span className="w-5 h-5 rounded bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-[10px] font-mono">
+                        <span className="w-5 h-5 rounded-none bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-[10px] font-mono">
                           {idx + 1}
                         </span>
                         <span className="truncate max-w-[180px]">{clienteName}</span>
                       </span>
                       <span className="font-extrabold text-slate-900">{formatKwanza(valor)}</span>
                     </div>
-                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                    <div className="w-full bg-slate-100 h-2.5 rounded-none overflow-hidden">
                       <div 
-                        className="bg-emerald-600 h-full rounded-full transition-all duration-500 bg-gradient-to-r from-emerald-500 to-teal-600" 
+                        className="bg-emerald-600 h-full rounded-none transition-all duration-500 bg-gradient-to-r from-emerald-500 to-teal-600" 
                         style={{ width: `${percentage}%` }}
                       ></div>
                     </div>
@@ -412,44 +412,44 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
       </div>
 
       {/* Leads Workflow Status Pipeline metrics */}
-      <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+      <div className="bg-white p-6 rounded-none border border-slate-100 shadow-sm">
         <h4 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
           <Activity className="w-4 h-4 text-orange-500" />
           Etapas do Funil de Leads
         </h4>
         <div className="grid grid-cols-2 md:grid-cols-7 gap-3">
           
-          <div className="bg-slate-50 p-3 rounded-lg text-center border border-slate-100">
+          <div className="bg-slate-50 p-3 rounded-none text-center border border-slate-100">
             <span className="text-[10px] font-bold text-slate-400 block uppercase">Captados (Mês)</span>
             <span className="text-xl font-black text-slate-800">{metrics.captadosEsteMesCount}</span>
           </div>
 
-          <div className="bg-slate-50 p-3 rounded-lg text-center border border-slate-100">
+          <div className="bg-slate-50 p-3 rounded-none text-center border border-slate-100">
             <span className="text-[10px] font-bold text-slate-400 block uppercase">Contactados</span>
             <span className="text-xl font-black text-slate-800">{metrics.contactosRealizadosCount}</span>
           </div>
 
-          <div className="bg-slate-50 p-3 rounded-lg text-center border border-slate-100">
+          <div className="bg-slate-50 p-3 rounded-none text-center border border-slate-100">
             <span className="text-[10px] font-bold text-slate-400 block uppercase">R. Agendadas</span>
             <span className="text-xl font-black text-slate-800">{metrics.reunioesAgendadasCount}</span>
           </div>
 
-          <div className="bg-slate-50 p-3 rounded-lg text-center border border-slate-100">
+          <div className="bg-slate-50 p-3 rounded-none text-center border border-slate-100">
             <span className="text-[10px] font-bold text-slate-400 block uppercase">R. Realizadas</span>
             <span className="text-xl font-black text-slate-800">{metrics.reunioesRealizadasCount}</span>
           </div>
 
-          <div className="bg-slate-50 p-3 rounded-lg text-center border border-slate-100">
+          <div className="bg-slate-50 p-3 rounded-none text-center border border-slate-100">
             <span className="text-[10px] font-bold text-slate-400 block uppercase">P. Apresentadas</span>
             <span className="text-xl font-black text-slate-800">{metrics.propostasApresentadasCount}</span>
           </div>
 
-          <div className="bg-slate-50 p-3 rounded-lg text-center border border-slate-100">
+          <div className="bg-slate-50 p-3 rounded-none text-center border border-slate-100">
             <span className="text-[10px] font-bold text-slate-400 block uppercase">Negociações</span>
             <span className="text-xl font-black text-slate-800">{metrics.negociacoesCount}</span>
           </div>
 
-          <div className="bg-slate-50 p-3 rounded-lg text-center border border-slate-100 bg-emerald-50/50">
+          <div className="bg-slate-50 p-3 rounded-none text-center border border-slate-100 bg-emerald-50/50">
             <span className="text-[10px] font-bold text-emerald-600 block uppercase font-extrabold">Fechados</span>
             <span className="text-xl font-black text-emerald-700">{metrics.fechamentosCount}</span>
           </div>
@@ -461,7 +461,7 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* Conversão do Processo */}
-        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
+        <div className="bg-white p-6 rounded-none border border-slate-100 shadow-sm flex flex-col justify-between">
           <div>
             <h4 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-5 flex items-center gap-2">
               <Percent className="w-4 h-4 text-orange-500" />
@@ -476,9 +476,9 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
                   <span>Leads ➔ Reuniões Marcadas/Realizadas</span>
                   <span className="text-orange-500">{metrics.leadsParaReunioes.toFixed(1)}%</span>
                 </div>
-                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                <div className="w-full bg-slate-100 h-2.5 rounded-none overflow-hidden">
                   <div 
-                    className="bg-orange-500 h-full rounded-full transition-all duration-500" 
+                    className="bg-orange-500 h-full rounded-none transition-all duration-500" 
                     style={{ width: `${Math.min(metrics.leadsParaReunioes, 100)}%` }}
                   ></div>
                 </div>
@@ -493,9 +493,9 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
                   <span>Reuniões ➔ Propostas Apresentadas</span>
                   <span className="text-indigo-600">{metrics.reunioesParaPropostas.toFixed(1)}%</span>
                 </div>
-                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                <div className="w-full bg-slate-100 h-2.5 rounded-none overflow-hidden">
                   <div 
-                    className="bg-indigo-600 h-full rounded-full transition-all duration-500" 
+                    className="bg-indigo-600 h-full rounded-none transition-all duration-500" 
                     style={{ width: `${Math.min(metrics.reunioesParaPropostas, 100)}%` }}
                   ></div>
                 </div>
@@ -510,9 +510,9 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
                   <span>Propostas ➔ Negócios Fechados</span>
                   <span className="text-emerald-600">{metrics.propostasParaFechamentos.toFixed(1)}%</span>
                 </div>
-                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                <div className="w-full bg-slate-100 h-2.5 rounded-none overflow-hidden">
                   <div 
-                    className="bg-emerald-500 h-full rounded-full transition-all duration-500" 
+                    className="bg-emerald-500 h-full rounded-none transition-all duration-500" 
                     style={{ width: `${Math.min(metrics.propostasParaFechamentos, 100)}%` }}
                   ></div>
                 </div>
@@ -524,7 +524,7 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
             </div>
           </div>
 
-          <div className="mt-4 pt-4 border-t border-slate-100 bg-slate-50 -mx-6 -mb-6 p-4 rounded-b-xl flex items-center justify-between text-[11px] text-slate-500">
+          <div className="mt-4 pt-4 border-t border-slate-100 bg-slate-50 -mx-6 -mb-6 p-4 rounded-none flex items-center justify-between text-[11px] text-slate-500">
             <span>Conversão Geral (Leads ➔ Fechados)</span>
             <span className="font-extrabold text-emerald-600 text-sm">
               {metrics.totalLeads > 0 ? ((metrics.fechamentosCount / metrics.totalLeads) * 100).toFixed(1) : 0}%
@@ -533,7 +533,7 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
         </div>
 
         {/* Breakdown of Origen / Serviços */}
-        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
+        <div className="bg-white p-6 rounded-none border border-slate-100 shadow-sm flex flex-col justify-between">
           <div>
             <h4 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
               <Tag className="w-4 h-4 text-orange-500" />
@@ -548,7 +548,7 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
                   <div key={origem} className="flex items-center justify-between text-xs">
                     <span className="text-slate-655 font-medium">{origem}</span>
                     <div className="flex items-center gap-2 text-right font-semibold">
-                      <span className="bg-slate-100 text-slate-800 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{stat.count} leads</span>
+                      <span className="bg-slate-100 text-slate-800 text-[10px] font-bold px-1.5 py-0.5 rounded-none">{stat.count} leads</span>
                       <span className="font-semibold text-slate-800">{formatKwanza(stat.value)}</span>
                     </div>
                   </div>
@@ -567,7 +567,7 @@ export default function Dashboard({ oportunidades, empresas, servicosConfig }: D
                   <div key={servico} className="flex items-center justify-between text-xs">
                     <span className="text-slate-655 font-medium">{servico}</span>
                     <div className="flex items-center gap-2 text-right font-semibold">
-                      <span className="bg-orange-50 text-orange-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{stat.count} leads</span>
+                      <span className="bg-orange-50 text-orange-700 text-[10px] font-bold px-1.5 py-0.5 rounded-none">{stat.count} leads</span>
                       <span className="font-semibold text-slate-800">{formatKwanza(stat.value)}</span>
                     </div>
                   </div>
