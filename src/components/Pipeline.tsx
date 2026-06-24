@@ -459,13 +459,13 @@ export default function Pipeline({
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  <th className="px-5 py-3">Empresa Lead</th>
-                  <th className="px-5 py-3">Data de Adição</th>
-                  <th className="px-5 py-3">Serviço Solicitado</th>
-                  <th className="px-5 py-3">Valor Estimado</th>
-                  <th className="px-5 py-3">Sócio Responsável</th>
+                  <th className="px-5 py-3">Lead</th>
+                  <th className="px-5 py-3">Data</th>
+                  <th className="px-5 py-3">Serviço</th>
+                  <th className="px-5 py-3">Valor</th>
+                  <th className="px-5 py-3">Responsável</th>
                   <th className="px-4 py-3">Origem</th>
-                  <th className="px-5 py-3 text-center">Fase / Estágio</th>
+                  <th className="px-5 py-3 text-center">Fase/Estágio</th>
                   <th className="px-5 py-3 text-right">Acções</th>
                 </tr>
               </thead>
