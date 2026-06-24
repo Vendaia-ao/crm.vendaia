@@ -48,6 +48,8 @@ export default function Empresas({
   // Navigation & Modals status
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNicho, setSelectedNicho] = useState('todos');
+  const [dataInicio, setDataInicio] = useState('');
+  const [dataFim, setDataFim] = useState('');
   const [selectedEmpresaId, setSelectedEmpresaId] = useState<string | null>(empresas[0]?.id || null);
   const [isSubmenuCollapsed, setIsSubmenuCollapsed] = useState(() => {
     try {
@@ -61,6 +63,7 @@ export default function Empresas({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddContactModal, setShowAddContactModal] = useState(false);
+  const [showLogsModal, setShowLogsModal] = useState(false);
 
   // Dynamic Inline Contacts during Empresa creation
   const [inlineContacts, setInlineContacts] = useState<Omit<Contacto, 'id' | 'empresa_id'>[]>([]);
@@ -121,9 +124,13 @@ export default function Empresas({
         (emp.nicho && emp.nicho.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (emp.cidade && emp.cidade.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchNicho = selectedNicho === 'todos' || emp.nicho === selectedNicho;
-      return matchSearch && matchNicho;
+      
+      const matchDateInit = dataInicio ? emp.data_cadastro >= dataInicio : true;
+      const matchDateEnd = dataFim ? emp.data_cadastro <= dataFim : true;
+
+      return matchSearch && matchNicho && matchDateInit && matchDateEnd;
     });
-  }, [empresas, searchTerm, selectedNicho]);
+  }, [empresas, searchTerm, selectedNicho, dataInicio, dataFim]);
 
   // Selected Company Details
   const selectedEmpresa = useMemo(() => {
@@ -145,19 +152,19 @@ export default function Empresas({
   }, [historico, selectedEmpresa]);
 
   const handleAddInlineContact = () => {
-    if (!currConNome || !currConEmail) {
-      alert('Nome e Email do contacto são obrigatórios!');
+    if (!currConNome) {
+      alert('Nome do contacto é obrigatório para ser adicionado!');
       return;
     }
     setInlineContacts([
       ...inlineContacts,
       {
         nome: currConNome,
-        cargo: currConCargo,
-        telefone: currConTel,
-        whatsapp: currConWhats,
-        email: currConEmail,
-        observacoes: currConObs
+        cargo: currConCargo || '',
+        telefone: currConTel || '',
+        whatsapp: currConWhats || '',
+        email: currConEmail || '',
+        observacoes: currConObs || ''
       }
     ]);
     // Clear elements
@@ -183,14 +190,14 @@ export default function Empresas({
 
     // Capture any unsaved contact typed into inputs
     let contactsToSubmit = [...inlineContacts];
-    if (currConNome.trim() && currConEmail.trim()) {
+    if (currConNome.trim()) {
       contactsToSubmit.push({
-        nome: currConNome,
-        cargo: currConCargo,
-        telefone: currConTel,
-        whatsapp: currConWhats,
-        email: currConEmail,
-        observacoes: currConObs
+        nome: currConNome.trim(),
+        cargo: currConCargo || '',
+        telefone: currConTel || '',
+        whatsapp: currConWhats || '',
+        email: currConEmail || '',
+        observacoes: currConObs || ''
       });
     }
 
@@ -276,19 +283,19 @@ export default function Empresas({
   const handleAddContactoSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedEmpresa) return;
-    if (!newConNome || !newConEmail) {
-      alert('Nome e Email são obrigatórios para os contactos.');
+    if (!newConNome) {
+      alert('O nome do contacto é obrigatório.');
       return;
     }
 
     onAddContacto({
       empresa_id: selectedEmpresa.id,
       nome: newConNome,
-      cargo: newConCargo,
-      telefone: newConTel,
-      whatsapp: newConWhats,
-      email: newConEmail,
-      observacoes: newConObs
+      cargo: newConCargo || '',
+      telefone: newConTel || '',
+      whatsapp: newConWhats || '',
+      email: newConEmail || '',
+      observacoes: newConObs || ''
     });
 
     // Logging Contact
@@ -389,18 +396,26 @@ export default function Empresas({
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <SlidersHorizontal className="w-3 h-3 text-slate-400" />
-              <select
-                value={selectedNicho}
-                onChange={(e) => setSelectedNicho(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 text-xs text-slate-600 rounded px-2 py-1 focus:outline-none"
-              >
-                <option value="todos">Todos os nichos</option>
-                {nichesList.map(nich => (
-                  <option key={nich} value={nich}>{nich}</option>
-                ))}
-              </select>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="w-3 h-3 text-slate-400" />
+                <select
+                  value={selectedNicho}
+                  onChange={(e) => setSelectedNicho(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 text-xs text-slate-600 rounded px-2 py-1 focus:outline-none"
+                >
+                  <option value="todos">Todos os nichos</option>
+                  {nichesList.map(nich => (
+                    <option key={nich} value={nich}>{nich}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-1.5 border border-slate-200 rounded p-1 bg-slate-50">
+                <span className="text-[10px] text-slate-400 font-bold uppercase pl-1">De:</span>
+                <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="flex-1 bg-transparent text-[10px] text-slate-600 focus:outline-none" />
+                <span className="text-[10px] text-slate-400 font-bold uppercase border-l border-slate-200 pl-1.5">Até:</span>
+                <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className="flex-1 bg-transparent text-[10px] text-slate-600 focus:outline-none" />
+              </div>
             </div>
           </div>
 
@@ -681,10 +696,22 @@ export default function Empresas({
               {/* History Timeline */}
               <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
                 <div>
-                  <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-4">
-                    <History className="w-3.5 h-3.5 text-orange-400" />
-                    Histórico da Empresa & Log
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <History className="w-3.5 h-3.5 text-orange-400" />
+                      Histórico da Empresa & Log
+                    </h3>
+                    {associatedHistory.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowLogsModal(true)}
+                        className="text-xs text-orange-500 font-bold hover:text-orange-655 flex items-center gap-1 cursor-pointer"
+                        title="Expandir Logs"
+                      >
+                        Expandir
+                      </button>
+                    )}
+                  </div>
 
                   {/* Add direct note form */}
                   <form onSubmit={handleAddNoteSubmit} className="mb-4 flex gap-2">
@@ -758,8 +785,17 @@ export default function Empresas({
 
       {/* CREATE MODAL */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          onClick={() => {
+            setInlineContacts([]);
+            setShowCreateModal(false);
+          }}
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-900 text-white">
               <h3 className="font-bold flex items-center gap-2">
                 <Building2 className="w-5 h-5 text-orange-500" />
@@ -873,7 +909,7 @@ export default function Empresas({
                   {/* Inline Contacts Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200/60 text-left">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-600 mb-1 font-sans">NOME COMPLETO *</label>
+                      <label className="block text-[10px] font-bold text-slate-600 mb-1 font-sans">NOME COMPLETO</label>
                       <input
                         type="text"
                         placeholder="Ex: Manuel Antunes"
@@ -893,7 +929,7 @@ export default function Empresas({
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-600 mb-1 font-sans">EMAIL DIRECTO *</label>
+                      <label className="block text-[10px] font-bold text-slate-600 mb-1 font-sans">EMAIL DIRECTO</label>
                       <input
                         type="email"
                         placeholder="Ex: m.antunes@empresa.com"
@@ -996,8 +1032,14 @@ export default function Empresas({
 
       {/* EDIT MODAL */}
       {showEditModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          onClick={() => setShowEditModal(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-900 text-white">
               <h3 className="font-bold flex items-center gap-2">
                 <Edit2 className="w-5 h-5 text-orange-500" />
@@ -1115,8 +1157,14 @@ export default function Empresas({
 
       {/* ADD CONTACT MODAL */}
       {showAddContactModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+        <div 
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          onClick={() => setShowAddContactModal(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-xl w-full max-w-md text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-900 text-white">
               <h3 className="font-bold flex items-center gap-2 text-sm uppercase tracking-wider">
                 <User className="w-5 h-5 text-orange-500" />
@@ -1176,10 +1224,9 @@ export default function Empresas({
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-700 mb-1">EMAIL PROFISSIONAL *</label>
+                <label className="block text-[10px] font-bold text-slate-700 mb-1">EMAIL PROFISSIONAL</label>
                 <input
                   type="email"
-                  required
                   placeholder="exemplo@empresa.com"
                   value={newConEmail}
                   onChange={(e) => setNewConEmail(e.target.value)}
@@ -1214,6 +1261,68 @@ export default function Empresas({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* EXPANDED LOGS MODAL */}
+      {showLogsModal && selectedEmpresa && (
+        <div 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in"
+          onClick={() => setShowLogsModal(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-900 text-white">
+              <h3 className="font-bold flex items-center gap-2">
+                <History className="w-5 h-5 text-orange-500 animate-spin" style={{ animationDuration: '3s' }} />
+                Histórico Completo - {selectedEmpresa.nome_empresa}
+              </h3>
+              <button 
+                onClick={() => setShowLogsModal(false)} 
+                className="text-slate-400 hover:text-white cursor-pointer p-1"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto space-y-4 flex-1">
+              <div className="space-y-4 border-l-2 border-slate-200 pl-4 py-2 text-xs relative">
+                {associatedHistory.map(hist => {
+                  const badgeColor = 
+                    hist.tipo === 'cadastro' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                    hist.tipo === 'contacto' ? 'bg-purple-50 text-purple-700 border-purple-100' :
+                    hist.tipo === 'oportunidade' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                    hist.tipo === 'etapa_mudança' ? 'bg-orange-50 text-orange-700 border-orange-100' :
+                    hist.tipo === 'projeto' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-slate-105 text-slate-700 border-slate-200';
+
+                  return (
+                    <div key={hist.id} className="relative pb-2">
+                      <div className="absolute w-3 h-3 rounded-full bg-slate-200 border-4 border-white -left-[22px] top-1"></div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-slate-800 text-sm">{hist.autor}</span>
+                        <span className="text-[10px] text-slate-450 font-mono">{formatDate(hist.data)} {new Date(hist.data).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      <p className="text-slate-650 font-medium text-xs mt-1 leading-relaxed">{hist.descricao}</p>
+                      <span className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded-full border mt-1.5 uppercase tracking-wide ${badgeColor}`}>
+                        {hist.tipo.replace('_', ' ')}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+              <button
+                onClick={() => setShowLogsModal(false)}
+                className="px-4 py-2 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-slate-800 transition cursor-pointer"
+              >
+                Fechar
+              </button>
+            </div>
           </div>
         </div>
       )}

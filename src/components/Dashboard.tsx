@@ -1,35 +1,28 @@
 import React, { useState, useMemo } from 'react';
-import { Oportunidade, Empresa, ServicoDisponivel, PipelineEtapa } from '../types';
-import { INITIAL_OPORTUNIDADES, INITIAL_EMPRESAS } from '../mockData';
+import { Oportunidade, Empresa } from '../types';
 import { 
   DollarSign, 
   TrendingUp, 
   Users, 
-  Layers, 
-  Percent, 
-  Calendar, 
-  User, 
-  Briefcase, 
-  Tag, 
-  MapPin, 
   Activity,
   Sliders,
-  CheckCircle2,
-  XCircle,
-  Clock
+  Percent,
+  Tag
 } from 'lucide-react';
 
 interface DashboardProps {
   oportunidades: Oportunidade[];
   empresas: Empresa[];
+  servicosConfig: string[];
 }
 
-export default function Dashboard({ oportunidades, empresas }: DashboardProps) {
+export default function Dashboard({ oportunidades, empresas, servicosConfig }: DashboardProps) {
   // Filters setup
   const [filterResponsavel, setFilterResponsavel] = useState<string>('todos');
   const [filterServico, setFilterServico] = useState<string>('todos');
   const [filterNicho, setFilterNicho] = useState<string>('todos');
-  const [filterPeriodo, setFilterPeriodo] = useState<string>('todos'); // todos, este_mes, este_ano
+  const [dataInicio, setDataInicio] = useState<string>('');
+  const [dataFim, setDataFim] = useState<string>('');
 
   // Extract unique values for drop-downs
   const responsaveis = useMemo(() => {
@@ -37,14 +30,7 @@ export default function Dashboard({ oportunidades, empresas }: DashboardProps) {
     return Array.from(set);
   }, [oportunidades]);
 
-  const servicos: ServicoDisponivel[] = [
-    'Website',
-    'Branding',
-    'Social Media',
-    'Tráfego Pago',
-    'Sistema Personalizado',
-    'Consultoria Tecnológica'
-  ];
+  const servicos = servicosConfig;
 
   const nichos = useMemo(() => {
     const set = new Set(empresas.map(e => e.nicho).filter(Boolean));
@@ -70,22 +56,11 @@ export default function Dashboard({ oportunidades, empresas }: DashboardProps) {
         }
       }
       // Periodo filter (checking input dates)
-      if (filterPeriodo !== 'todos') {
-        const date = new Date(opt.data_entrada);
-        const now = new Date();
-        if (filterPeriodo === 'este_mes') {
-          if (date.getMonth() !== now.getMonth() || date.getFullYear() !== now.getFullYear()) {
-            return false;
-          }
-        } else if (filterPeriodo === 'este_ano') {
-          if (date.getFullYear() !== now.getFullYear()) {
-            return false;
-          }
-        }
-      }
+      if (dataInicio && opt.data_entrada < dataInicio) return false;
+      if (dataFim && opt.data_entrada > dataFim) return false;
       return true;
     });
-  }, [oportunidades, empresas, filterResponsavel, filterServico, filterNicho, filterPeriodo]);
+  }, [oportunidades, empresas, filterResponsavel, filterServico, filterNicho, dataInicio, dataFim]);
 
   // Clean values helper in Kwanzas
   const formatKwanza = (v: number) => {
@@ -137,19 +112,16 @@ export default function Dashboard({ oportunidades, empresas }: DashboardProps) {
     const ticketMedio = fechamentosCount > 0 ? (receitaFechada / fechamentosCount) : 0;
 
     // Conversion Rates
-    // Leads -> Reuniões (All that got scheduled or completed / total leads)
     const totalReunioesAtleast = filteredOportunidades.filter(o => 
       ['Reunião Agendada', 'Reunião Realizada', 'Proposta Apresentada', 'Negociação', 'Fechado'].includes(o.etapa)
     ).length;
     const leadsParaReunioes = totalLeads > 0 ? (totalReunioesAtleast / totalLeads) * 100 : 0;
 
-    // Reuniões -> Propostas (Proposta Apresentada / Reunião Realizada-or-above counts)
     const reunioesRealizadasPlus = filteredOportunidades.filter(o => 
       ['Reunião Realizada', 'Proposta Apresentada', 'Negociação', 'Fechado'].includes(o.etapa)
     ).length;
     const reunioesParaPropostas = reunioesRealizadasPlus > 0 ? (propostasApresentadasCount / reunioesRealizadasPlus) * 100 : 0;
 
-    // Propostas -> Fechamentos (Fechado / Propostas count)
     const propostasParaFechamentos = propostasApresentadasCount > 0 ? (fechamentosCount / propostasApresentadasCount) * 100 : 0;
 
     return {
@@ -170,6 +142,30 @@ export default function Dashboard({ oportunidades, empresas }: DashboardProps) {
     };
   }, [filteredOportunidades]);
 
+  // Ranked billing per service (stage = 'Fechado')
+  const facturacaoServicoStats = useMemo(() => {
+    const stats: Record<string, number> = {};
+    filteredOportunidades.forEach(o => {
+      if (o.etapa === 'Fechado') {
+        stats[o.servico] = (stats[o.servico] || 0) + o.valor_estimado;
+      }
+    });
+    return Object.entries(stats).sort((a, b) => b[1] - a[1]);
+  }, [filteredOportunidades]);
+
+  // Ranked billing per Client (stage = 'Fechado')
+  const clientesFacturacaoStats = useMemo(() => {
+    const stats: Record<string, number> = {};
+    filteredOportunidades.forEach(o => {
+      if (o.etapa === 'Fechado') {
+        const emp = empresas.find(e => e.id === o.empresa_id);
+        const name = emp ? emp.nome_empresa : 'Empresa Indefinida';
+        stats[name] = (stats[name] || 0) + o.valor_estimado;
+      }
+    });
+    return Object.entries(stats).sort((a, b) => b[1] - a[1]);
+  }, [filteredOportunidades, empresas]);
+
   // Leads by source statistics
   const origensStats = useMemo(() => {
     const stats: Record<string, { count: number; value: number }> = {};
@@ -183,7 +179,7 @@ export default function Dashboard({ oportunidades, empresas }: DashboardProps) {
     return Object.entries(stats).sort((a,b) => b[1].count - a[1].count);
   }, [filteredOportunidades]);
 
-  // Service breakdown
+  // Service breakdown (leads)
   const servicosStats = useMemo(() => {
     const stats: Record<string, { count: number; value: number }> = {};
     filteredOportunidades.forEach(o => {
@@ -201,11 +197,12 @@ export default function Dashboard({ oportunidades, empresas }: DashboardProps) {
     setFilterResponsavel('todos');
     setFilterServico('todos');
     setFilterNicho('todos');
-    setFilterPeriodo('todos');
+    setDataInicio('');
+    setDataFim('');
   };
 
   return (
-    <div id="dashboard-module" className="space-y-6">
+    <div id="dashboard-module" className="space-y-6 text-left">
       
       {/* Filters bar */}
       <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-wrap gap-4 items-center justify-between">
@@ -215,18 +212,22 @@ export default function Dashboard({ oportunidades, empresas }: DashboardProps) {
             Filtros Ativos:
           </div>
 
-          {/* Periodo */}
-          <div className="flex flex-col">
-            <span className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Período</span>
-            <select
-              value={filterPeriodo}
-              onChange={(e) => setFilterPeriodo(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-orange-500"
-            >
-              <option value="todos">Todo o histórico</option>
-              <option value="este_mes">Este Mês</option>
-              <option value="este_ano">Este Ano</option>
-            </select>
+          {/* Período */}
+          <div className="flex items-center gap-1.5 ml-2">
+            <span className="text-[10px] text-slate-400 font-bold uppercase">De:</span>
+            <input 
+              type="date" 
+              value={dataInicio} 
+              onChange={e => setDataInicio(e.target.value)}
+              className="bg-slate-50 border border-slate-200 text-[10px] text-slate-600 rounded px-2 py-1.5 focus:outline-none"
+            />
+            <span className="text-[10px] text-slate-400 font-bold uppercase">Até:</span>
+            <input 
+              type="date" 
+              value={dataFim} 
+              onChange={e => setDataFim(e.target.value)}
+              className="bg-slate-50 border border-slate-200 text-[10px] text-slate-600 rounded px-2 py-1.5 focus:outline-none"
+            />
           </div>
 
           {/* Responsável */}
@@ -235,9 +236,9 @@ export default function Dashboard({ oportunidades, empresas }: DashboardProps) {
             <select
               value={filterResponsavel}
               onChange={(e) => setFilterResponsavel(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-orange-500"
+              className="bg-slate-50 border border-slate-200 rounded px-2.5 py-1 text-xs text-slate-700 font-medium focus:outline-none"
             >
-              <option value="todos">Todos os Sócios</option>
+              <option value="todos">Todos os Responsáveis</option>
               {responsaveis.map(resp => (
                 <option key={resp} value={resp}>{resp}</option>
               ))}
@@ -250,7 +251,7 @@ export default function Dashboard({ oportunidades, empresas }: DashboardProps) {
             <select
               value={filterServico}
               onChange={(e) => setFilterServico(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-orange-500"
+              className="bg-slate-50 border border-slate-200 rounded px-2.5 py-1 text-xs text-slate-700 font-medium focus:outline-none"
             >
               <option value="todos">Todos os Serviços</option>
               {servicos.map(s => (
@@ -265,7 +266,7 @@ export default function Dashboard({ oportunidades, empresas }: DashboardProps) {
             <select
               value={filterNicho}
               onChange={(e) => setFilterNicho(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-orange-500"
+              className="bg-slate-50 border border-slate-200 rounded px-2.5 py-1 text-xs text-slate-700 font-medium focus:outline-none"
             >
               <option value="todos">Todos os Nichos</option>
               {nichos.map(n => (
@@ -275,7 +276,7 @@ export default function Dashboard({ oportunidades, empresas }: DashboardProps) {
           </div>
         </div>
 
-        {(filterResponsavel !== 'todos' || filterServico !== 'todos' || filterNicho !== 'todos' || filterPeriodo !== 'todos') && (
+        {(filterResponsavel !== 'todos' || filterServico !== 'todos' || filterNicho !== 'todos' || dataInicio || dataFim) && (
           <button
             onClick={resetFilters}
             className="text-xs font-semibold text-orange-500 hover:text-orange-600 bg-orange-50 hover:bg-orange-100/50 px-3 py-1.5 rounded-lg transition"
@@ -291,28 +292,123 @@ export default function Dashboard({ oportunidades, empresas }: DashboardProps) {
           <div className="absolute top-0 right-0 p-4 opacity-5">
             <DollarSign className="w-16 h-16 text-slate-900" />
           </div>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Receita Fechada</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Facturação</p>
           <h3 className="text-2xl font-bold text-emerald-600 mt-1">{formatKwanza(metrics.receitaFechada)}</h3>
-          <p className="text-[11px] text-slate-400 mt-2">Valor dos negócios em etapa <span className="font-semibold text-emerald-600">Fechado</span>.</p>
+          <p className="text-[11px] text-slate-400 mt-2">Valor acumulado dos negócios em etapa <span className="font-semibold text-emerald-600">Fechado</span>.</p>
         </div>
 
         <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-5">
             <TrendingUp className="w-16 h-16 text-slate-900" />
           </div>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Receita Prevista (Gatilho)</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Receita Prevista (Pipeline)</p>
           <h3 className="text-2xl font-bold text-amber-500 mt-1">{formatKwanza(metrics.receitaPrevista)}</h3>
-          <p className="text-[11px] text-slate-400 mt-2">Valor acumulado de leads activos em negociação.</p>
+          <p className="text-[11px] text-slate-400 mt-2">Valor estimado de leads activos em negociação.</p>
         </div>
 
         <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-5">
-            <Briefcase className="w-16 h-16 text-slate-900" />
+            <Activity className="w-16 h-16 text-slate-900" />
           </div>
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Ticket Médio (AOA)</p>
           <h3 className="text-2xl font-bold text-indigo-900 mt-1">{formatKwanza(metrics.ticketMedio)}</h3>
-          <p className="text-[11px] text-slate-400 mt-2">Faturamento fechado dividido pelo total de fechamentos.</p>
+          <p className="text-[11px] text-slate-400 mt-2">Facturação dividida pelo total de fechamentos.</p>
         </div>
+      </div>
+
+      {/* PERFORMANCE RANKINGS SECTION */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        {/* Ranked billing per service */}
+        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
+          <div>
+            <h4 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-5 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-orange-500 animate-pulse" />
+              Facturação por Serviço (Ranqueado)
+            </h4>
+            
+            <div className="space-y-4">
+              {facturacaoServicoStats.map(([servico, valor], idx) => {
+                const percentage = metrics.receitaFechada > 0 ? (valor / metrics.receitaFechada) * 100 : 0;
+                
+                return (
+                  <div key={servico} className="space-y-1">
+                    <div className="flex justify-between text-xs font-semibold text-slate-700">
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-slate-400 font-bold font-mono">#{idx + 1}</span>
+                        {servico}
+                      </span>
+                      <span className="font-extrabold text-slate-900">{formatKwanza(valor)}</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-indigo-600 h-full rounded-full transition-all duration-500 bg-gradient-to-r from-blue-500 to-indigo-600" 
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between text-[9px] text-slate-400 font-semibold">
+                      <span>Percentagem de Facturação</span>
+                      <span>{percentage.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {facturacaoServicoStats.length === 0 && (
+                <div className="text-center text-slate-400 italic py-8">
+                  Nenhuma facturação registada nos filtros atuais.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Ranked client revenue list */}
+        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
+          <div>
+            <h4 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-5 flex items-center gap-2">
+              <Users className="w-4 h-4 text-orange-500" />
+              Ranking de Clientes (Faturamento Gerado)
+            </h4>
+            
+            <div className="space-y-4">
+              {clientesFacturacaoStats.slice(0, 5).map(([clienteName, valor], idx) => {
+                const percentage = metrics.receitaFechada > 0 ? (valor / metrics.receitaFechada) * 100 : 0;
+                
+                return (
+                  <div key={clienteName} className="space-y-1">
+                    <div className="flex justify-between text-xs font-semibold text-slate-700">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-5 h-5 rounded bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-[10px] font-mono">
+                          {idx + 1}
+                        </span>
+                        <span className="truncate max-w-[180px]">{clienteName}</span>
+                      </span>
+                      <span className="font-extrabold text-slate-900">{formatKwanza(valor)}</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-emerald-600 h-full rounded-full transition-all duration-500 bg-gradient-to-r from-emerald-500 to-teal-600" 
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between text-[9px] text-slate-400 font-semibold">
+                      <span>Participação na Facturação Global</span>
+                      <span>{percentage.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {clientesFacturacaoStats.length === 0 && (
+                <div className="text-center text-slate-400 italic py-8">
+                  Nenhum cliente com facturação registada.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
       </div>
 
       {/* Leads Workflow Status Pipeline metrics */}
@@ -354,7 +450,7 @@ export default function Dashboard({ oportunidades, empresas }: DashboardProps) {
           </div>
 
           <div className="bg-slate-50 p-3 rounded-lg text-center border border-slate-100 bg-emerald-50/50">
-            <span className="text-[10px] font-bold text-emerald-600 block uppercase">Fechados</span>
+            <span className="text-[10px] font-bold text-emerald-600 block uppercase font-extrabold">Fechados</span>
             <span className="text-xl font-black text-emerald-700">{metrics.fechamentosCount}</span>
           </div>
 
@@ -441,7 +537,7 @@ export default function Dashboard({ oportunidades, empresas }: DashboardProps) {
           <div>
             <h4 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
               <Tag className="w-4 h-4 text-orange-500" />
-              Origem dos Leads & Serviços Mais Vendidos
+              Origem dos Leads & Propostas por Serviço
             </h4>
 
             {/* Origem */}
@@ -450,8 +546,8 @@ export default function Dashboard({ oportunidades, empresas }: DashboardProps) {
               <div className="space-y-2">
                 {origensStats.slice(0, 4).map(([origem, stat]) => (
                   <div key={origem} className="flex items-center justify-between text-xs">
-                    <span className="text-slate-600 font-medium">{origem}</span>
-                    <div className="flex items-center gap-2 text-right">
+                    <span className="text-slate-655 font-medium">{origem}</span>
+                    <div className="flex items-center gap-2 text-right font-semibold">
                       <span className="bg-slate-100 text-slate-800 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{stat.count} leads</span>
                       <span className="font-semibold text-slate-800">{formatKwanza(stat.value)}</span>
                     </div>
@@ -465,13 +561,13 @@ export default function Dashboard({ oportunidades, empresas }: DashboardProps) {
 
             {/* Serviços */}
             <div className="border-t border-slate-100 pt-3">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Serviços Propostos</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Estágio de Propostas Activas</span>
               <div className="space-y-2">
                 {servicosStats.slice(0, 4).map(([servico, stat]) => (
                   <div key={servico} className="flex items-center justify-between text-xs">
-                    <span className="text-slate-600 font-medium">{servico}</span>
-                    <div className="flex items-center gap-2 text-right">
-                      <span className="bg-orange-50 text-orange-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{stat.count} propostas</span>
+                    <span className="text-slate-655 font-medium">{servico}</span>
+                    <div className="flex items-center gap-2 text-right font-semibold">
+                      <span className="bg-orange-50 text-orange-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{stat.count} leads</span>
                       <span className="font-semibold text-slate-800">{formatKwanza(stat.value)}</span>
                     </div>
                   </div>
@@ -484,7 +580,7 @@ export default function Dashboard({ oportunidades, empresas }: DashboardProps) {
 
           </div>
 
-          <div className="text-[10px] text-slate-400 pt-4 border-t border-slate-100 mt-4">
+          <div className="text-[10px] text-slate-450 pt-4 border-t border-slate-100 mt-4 italic font-medium">
             Dados filtrados com base na selecção corrente. Todas as métricas actualizam em tempo-real.
           </div>
         </div>

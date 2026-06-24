@@ -87,20 +87,53 @@ export interface Oportunidade {
 export type EstadoProjecto =
   | 'Em Produção'
   | 'Em Revisão'
-  | 'Entregue'
-  | 'Cliente Activo';
+  | 'Pronto para Entrega';
 
 export interface Projecto {
   id: string;
   empresa_id: string;
-  servico: ServicoDisponivel;
+  cliente_id?: string;
+  servico: ServicoDisponivel | string;
   valor: number;
   data_inicio: string; // ISO string
   prazo: string; // Date string or ISO
-  responsavel: string; // 'Director Comercial' | 'Director Operacional'
+  responsavel: string; // Technical lead name
   estado: EstadoProjecto;
   observacoes?: string;
   oportunidade_id: string;
+}
+
+export type EstadoCliente =
+  | 'Aguardando Apresentação'
+  | 'Apresentação Agendada'
+  | 'Apresentação Realizada'
+  | 'Cliente Ativo'
+  | 'Cliente Inativo';
+
+export type ProximaAcaoComercial =
+  | 'Ligar para Cliente'
+  | 'Agendar Reunião'
+  | 'Apresentar Projeto'
+  | 'Solicitar Feedback'
+  | 'Propor Novo Serviço'
+  | '';
+
+export interface Cliente {
+  id: string;
+  nome_empresa: string;
+  contacto_principal: string;
+  telefone: string;
+  email: string;
+  servico_contratado: string;
+  valor_negocio: number;
+  data_fecho: string; // ISO string
+  projeto_associado?: string;
+  estado: EstadoCliente;
+  data_reuniao?: string;
+  hora_reuniao?: string;
+  local_reuniao?: string;
+  observacoes_reuniao?: string;
+  proxima_acao?: ProximaAcaoComercial;
 }
 
 export interface HistoricoItem {
@@ -108,6 +141,7 @@ export interface HistoricoItem {
   empresa_id: string;
   autor: string;
   data: string; // ISO string
-  tipo: 'cadastro' | 'contacto' | 'oportunidade' | 'etapa_mudança' | 'projeto' | 'nota';
+  tipo: 'cadastro' | 'contacto' | 'oportunidade' | 'etapa_mudança' | 'projeto' | 'nota' | 'cliente';
   descricao: string;
 }
+

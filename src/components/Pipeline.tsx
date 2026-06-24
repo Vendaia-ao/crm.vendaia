@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Oportunidade, Empresa, Contacto, PipelineEtapa, ServicoDisponivel, OrigemLead, MotivoPerda } from '../types';
+import { Oportunidade, Empresa, Contacto, PipelineEtapa, ServicoDisponivel, OrigemLead, MotivoPerda, User as UserType } from '../types';
 import {
   Plus,
   Trash2,
@@ -14,11 +14,13 @@ import {
   Sliders,
   CheckCircle,
   AlertOctagon,
-  Building2,
   X,
   Share2,
   Phone,
-  Mail
+  Mail,
+  MoreVertical,
+  MapPin,
+  Building2
 } from 'lucide-react';
 
 interface PipelineProps {
@@ -29,6 +31,9 @@ interface PipelineProps {
   onAddOportunidade: (oportunidade: Omit<Oportunidade, 'id' | 'data_entrada'>) => void;
   onUpdateOportunidadeEtapa: (id: string, novaEtapa: PipelineEtapa, motivoPerda?: MotivoPerda, perdaDetalhe?: string) => void;
   onDeleteOportunidade: (id: string) => void;
+  onAddEmpresa: (empresa: Omit<Empresa, 'id' | 'data_cadastro'>, contacts?: Omit<Contacto, 'id' | 'empresa_id'>[]) => void;
+  profiles: UserType[];
+  servicosConfig: string[];
 }
 
 const ETAPAS_ORDENADAS: PipelineEtapa[] = [
@@ -49,7 +54,10 @@ export default function Pipeline({
   currentUser,
   onAddOportunidade,
   onUpdateOportunidadeEtapa,
-  onDeleteOportunidade
+  onDeleteOportunidade,
+  onAddEmpresa,
+  profiles,
+  servicosConfig
 }: PipelineProps) {
 
   // State variables
@@ -76,14 +84,50 @@ export default function Pipeline({
   const [filterResponsavel, setFilterResponsavel] = useState('todos');
   const [filterServico, setFilterServico] = useState('todos');
   const [filterEtapa, setFilterEtapa] = useState('todos');
+  const [dataInicio, setDataInicio] = useState('');
+  const [dataFim, setDataFim] = useState('');
+  
+  // Open dropdown states for rows
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   // Form fields for new Oportunidade
   const [newOptEmpresaId, setNewOptEmpresaId] = useState('');
-  const [newOptServico, setNewOptServico] = useState<ServicoDisponivel>('Website');
+  const [newOptServico, setNewOptServico] = useState<string>('');
   const [newOptValor, setNewOptValor] = useState<number>(1200000);
-  const [newOptResponsavel, setNewOptResponsavel] = useState('Director Comercial');
+  const [newOptResponsavel, setNewOptResponsavel] = useState('');
   const [newOptOrigem, setNewOptOrigem] = useState<OrigemLead>('Instagram');
   const [newOptObs, setNewOptObs] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Form fields for new Empresa in Pipeline
+  const [newEmpName, setNewEmpName] = useState('');
+  const [newEmpNicho, setNewEmpNicho] = useState('');
+  const [newEmpCidade, setNewEmpCidade] = useState('');
+  const [newEmpEndereco, setNewEmpEndereco] = useState('');
+  const [newEmpWeb, setNewEmpWeb] = useState('');
+  const [newEmpInsta, setNewEmpInsta] = useState('');
+  const [newEmpFb, setNewEmpFb] = useState('');
+  const [newEmpPhone, setNewEmpPhone] = useState('');
+  const [newEmpObs, setNewEmpObs] = useState('');
+  
+  // Optional contact fields inside company registration
+  const [newEmpConNome, setNewEmpConNome] = useState('');
+  const [newEmpConCargo, setNewEmpConCargo] = useState('');
+  const [newEmpConEmail, setNewEmpConEmail] = useState('');
+  const [newEmpConTel, setNewEmpConTel] = useState('');
+
+  // Auto initialize responsible and services if empty
+  React.useEffect(() => {
+    if (profiles && profiles.length > 0 && !newOptResponsavel) {
+      newOptResponsavel || setNewOptResponsavel(profiles[0].nome);
+    }
+  }, [profiles]);
+
+  React.useEffect(() => {
+    if (servicosConfig && servicosConfig.length > 0 && !newOptServico) {
+      newOptServico || setNewOptServico(servicosConfig[0]);
+    }
+  }, [servicosConfig]);
 
   // Form fields for Motivo de Perda
   const [perdaMotivo, setPerdaMotivo] = useState<MotivoPerda>('Sem orçamento');
@@ -93,16 +137,7 @@ export default function Pipeline({
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
 
   // Services available
-  const listServicos: ServicoDisponivel[] = [
-    'Website',
-    'Email Corporativo',
-    'Branding',
-    'Social Media',
-    'Tráfego Pago',
-    'Sistema Personalizado',
-    'Consultoria Tecnológica'
-
-  ];
+  const listServicos = servicosConfig;
 
   // Lead Origins
   const listOrigens: OrigemLead[] = [
@@ -129,12 +164,17 @@ export default function Pipeline({
   // Filter opportunities
   const filteredOportunidades = useMemo(() => {
     return oportunidades.filter(opt => {
-      const matchResp = filterResponsavel === 'todos' || opt.responsavel === filterResponsavel;
-      const matchServ = filterServico === 'todos' || opt.servico === filterServico;
-      const matchEtapa = filterEtapa === 'todos' || opt.etapa === filterEtapa;
-      return matchResp && matchServ && matchEtapa;
+      if (filterResponsavel !== 'todos' && opt.responsavel !== filterResponsavel) return false;
+      if (filterServico !== 'todos' && opt.servico !== filterServico) return false;
+      if (filterEtapa !== 'todos' && opt.etapa !== filterEtapa) return false;
+      
+      // Date filtering
+      if (dataInicio && opt.data_entrada < dataInicio) return false;
+      if (dataFim && opt.data_entrada > dataFim) return false;
+
+      return true;
     });
-  }, [oportunidades, filterResponsavel, filterServico, filterEtapa]);
+  }, [oportunidades, filterResponsavel, filterServico, filterEtapa, dataInicio, dataFim]);
 
   // Grouped by stage
   const colsData = useMemo(() => {
@@ -205,9 +245,9 @@ export default function Pipeline({
 
     onAddOportunidade({
       empresa_id: newOptEmpresaId,
-      servico: newOptServico,
+      servico: newOptServico as any,
       valor_estimado: Number(newOptValor),
-      responsavel: newOptResponsavel,
+      responsavel: newOptResponsavel || currentUser,
       origem: newOptOrigem,
       observacoes: newOptObs,
       etapa: 'Lead Captado'
@@ -215,12 +255,60 @@ export default function Pipeline({
 
     // Reset
     setNewOptEmpresaId('');
-    setNewOptServico('Website');
+    setNewOptServico(servicosConfig[0] || '');
     setNewOptValor(1200000);
-    setNewOptResponsavel('Director Comercial');
+    setNewOptResponsavel(profiles[0]?.nome || '');
     setNewOptOrigem('Instagram');
     setNewOptObs('');
     setShowAddModal(false);
+  };
+
+  const handleCreateEmpresaSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEmpName || !newEmpPhone) {
+      alert('Nome da Empresa e Telefone Principal são obrigatórios!');
+      return;
+    }
+    
+    let contactsToSubmit = [];
+    if (newEmpConNome.trim()) {
+      contactsToSubmit.push({
+        nome: newEmpConNome.trim(),
+        cargo: newEmpConCargo || '',
+        telefone: newEmpConTel || '',
+        whatsapp: '',
+        email: newEmpConEmail || '',
+        observacoes: ''
+      });
+    }
+
+    onAddEmpresa({
+      nome_empresa: newEmpName,
+      nicho: newEmpNicho,
+      cidade: newEmpCidade,
+      endereco: newEmpEndereco,
+      website_actual: newEmpWeb,
+      instagram: newEmpInsta,
+      facebook: newEmpFb,
+      telefone_principal: newEmpPhone,
+      observacoes: newEmpObs
+    }, contactsToSubmit);
+
+    // Reset fields
+    setNewEmpName('');
+    setNewEmpNicho('');
+    setNewEmpCidade('');
+    setNewEmpEndereco('');
+    setNewEmpWeb('');
+    setNewEmpInsta('');
+    setNewEmpFb('');
+    setNewEmpPhone('');
+    setNewEmpObs('');
+    setNewEmpConNome('');
+    setNewEmpConCargo('');
+    setNewEmpConEmail('');
+    setNewEmpConTel('');
+    setShowCreateModal(false);
   };
 
   // Submit Loss Reason validation
@@ -268,11 +356,12 @@ export default function Pipeline({
             <select
               value={filterResponsavel}
               onChange={(e) => setFilterResponsavel(e.target.value)}
-              className="bg-slate-50 border border-slate-200 text-xs text-slate-600 rounded px-2.5 py-1 focus:outline-none"
+              className="bg-slate-50 border border-slate-200 text-xs text-slate-650 font-bold rounded px-2.5 py-1 focus:outline-none"
             >
-              <option value="todos">Todos os Sócios</option>
-              <option value="Director Comercial">Director Comercial</option>
-              <option value="Director Operacional">Director Operacional</option>
+              <option value="todos">Todos os Responsáveis</option>
+              {profiles.map(p => (
+                <option key={p.id} value={p.nome}>{p.nome}</option>
+              ))}
             </select>
           </div>
 
@@ -303,6 +392,22 @@ export default function Pipeline({
               ))}
             </select>
           </div>
+          <div className="flex items-center gap-1.5 ml-2">
+            <span className="text-xs text-slate-400 font-bold uppercase">De:</span>
+            <input 
+              type="date" 
+              value={dataInicio} 
+              onChange={e => setDataInicio(e.target.value)}
+              className="bg-slate-50 border border-slate-200 text-xs text-slate-600 rounded px-2.5 py-1.5 focus:outline-none"
+            />
+            <span className="text-xs text-slate-400 font-bold uppercase">Até:</span>
+            <input 
+              type="date" 
+              value={dataFim} 
+              onChange={e => setDataFim(e.target.value)}
+              className="bg-slate-50 border border-slate-200 text-xs text-slate-600 rounded px-2.5 py-1.5 focus:outline-none"
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
@@ -327,12 +432,22 @@ export default function Pipeline({
               if (empresas.length > 0) {
                 setNewOptEmpresaId(empresas[0].id);
               }
+              // Set default service and responsible
+              setNewOptServico(servicosConfig[0] || '');
+              setNewOptResponsavel(profiles[0]?.nome || '');
               setShowAddModal(true);
             }}
             className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 transition cursor-pointer"
           >
             <Plus className="w-4 h-4 text-orange-500" />
             Captar Lead
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-2 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg flex items-center gap-0.5 transition cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5 text-orange-500" />
+            Nova Empresa
           </button>
         </div>
       </div>
@@ -345,20 +460,21 @@ export default function Pipeline({
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                   <th className="px-5 py-3">Empresa Lead</th>
+                  <th className="px-5 py-3">Data de Adição</th>
                   <th className="px-5 py-3">Serviço Solicitado</th>
                   <th className="px-5 py-3">Valor Estimado</th>
                   <th className="px-5 py-3">Sócio Responsável</th>
                   <th className="px-4 py-3">Origem</th>
                   <th className="px-5 py-3 text-center">Fase / Estágio</th>
-                  <th className="px-5 py-3 text-right">Ações de Progresso</th>
+                  <th className="px-5 py-3 text-right">Acções</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs text-slate-705">
                 {filteredOportunidades.map(lead => {
                   const empVal = empresas.find(e => e.id === lead.empresa_id);
                   const currentIndex = ETAPAS_ORDENADAS.indexOf(lead.etapa);
-                  const canAdvance = currentIndex < ETAPAS_ORDENADAS.length - 2; // Can advance if not 'Fechado' or 'Perdido' (last elements)
-                  const nextStageName = canAdvance ? ETAPAS_ORDENADAS[currentIndex + 1] : '';
+                  const canAdvance = currentIndex < ETAPAS_ORDENADAS.length - 2;
+                  const isDropdownOpen = openDropdownId === lead.id;
 
                   let badgeBg = 'bg-slate-100 text-slate-700';
                   if (lead.etapa === 'Fechado') {
@@ -375,12 +491,15 @@ export default function Pipeline({
 
                   return (
                     <tr key={lead.id} className="hover:bg-slate-50/50 transition">
-                      <td className="px-5 py-4">
-                        <p className="font-extrabold text-slate-900">{empVal ? empVal.nome_empresa : 'Empresa Indefinida'}</p>
-                        <p className="text-[10px] text-slate-400 font-mono mt-0.5">{empVal?.nicho || 'Geral'} • {empVal?.cidade || 'Luanda'}</p>
+                      <td className="px-5 py-3">
+                        <p className="font-extrabold text-slate-900 truncate max-w-[150px]">{empVal ? empVal.nome_empresa : 'Desconhecida'}</p>
+                        {empVal?.cidade && <p className="text-[10px] text-slate-400 font-bold flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" />{empVal.cidade}</p>}
                       </td>
-                      <td className="px-5 py-4">
-                        <span className="bg-slate-100 text-slate-700 font-semibold px-2 py-0.5 rounded text-[10px] uppercase">
+                      <td className="px-5 py-3 text-slate-500 font-mono text-[11px]">
+                        {new Date(lead.data_entrada).toLocaleDateString('pt-AO')}
+                      </td>
+                      <td className="px-5 py-3">
+                        <span className="bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded text-[10px] uppercase">
                           {lead.servico}
                         </span>
                       </td>
@@ -407,65 +526,73 @@ export default function Pipeline({
                           )}
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {/* Ligar Button */}
+                      <td className="px-5 py-3 text-right">
+                        <div className="relative inline-block text-left">
                           <button
-                            onClick={() => setPhoneModalLead(lead)}
-                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-orange-50 text-slate-700 hover:text-orange-600 font-extrabold text-[10px] uppercase rounded border border-slate-200 hover:border-orange-200/80 shadow-sm transition flex items-center gap-1 cursor-pointer"
-                            title="Ver Contactos para Ligar"
+                            onClick={() => setOpenDropdownId(isDropdownOpen ? null : lead.id)}
+                            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
                           >
-                            <Phone className="w-3.5 h-3.5 text-orange-500" />
-                            Ligar
+                            <MoreVertical className="w-4 h-4" />
                           </button>
 
-                          {/* Advance Button with arrow right */}
-                          {canAdvance ? (
-                            <button
-                              onClick={() => handleAdvanceEtapa(lead)}
-                              className="px-2.5 py-1.5 bg-orange-500 hover:bg-orange-655 text-slate-950 font-black text-[10px] uppercase rounded shadow-sm hover:shadow transition flex items-center gap-1 cursor-pointer"
-                              title={`Avançar para: ${nextStageName}`}
-                            >
-                              Avançar <ArrowRight className="w-3.5 h-3.5" />
-                            </button>
-                          ) : (
-                            <span className="text-[10px] font-mono text-slate-450 italic font-medium px-2 py-1 bg-slate-55 rounded">Concluído</span>
+                          {isDropdownOpen && (
+                            <>
+                              <div className="fixed inset-0 z-10" onClick={() => setOpenDropdownId(null)}></div>
+                              <div className="absolute right-0 mt-1 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-20 py-1 flex flex-col text-left font-semibold text-xs">
+                                
+                                <button
+                                  onClick={() => { setOpenDropdownId(null); setPhoneModalLead(lead); }}
+                                  className="px-4 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2 w-full text-left"
+                                >
+                                  <Phone className="w-4 h-4 text-orange-500" /> Detalhes & Contactos
+                                </button>
+
+                                {canAdvance && (
+                                  <button
+                                    onClick={() => { setOpenDropdownId(null); handleAdvanceEtapa(lead); }}
+                                    className="px-4 py-2 hover:bg-slate-50 text-emerald-600 flex items-center gap-2 w-full text-left"
+                                  >
+                                    <ArrowRight className="w-4 h-4" /> Avançar Fase
+                                  </button>
+                                )}
+
+                                <div className="px-4 py-2 hover:bg-slate-50 text-slate-700 flex flex-col gap-1 border-t border-slate-100 mt-1 pt-2">
+                                  <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Mudar Etapa Manual</span>
+                                  <select
+                                    value={lead.etapa}
+                                    onChange={(e) => { setOpenDropdownId(null); requestStageUpdate(lead.id, e.target.value as PipelineEtapa); }}
+                                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded p-1"
+                                  >
+                                    {ETAPAS_ORDENADAS.map(et => (
+                                      <option key={et} value={et}>{et}</option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                {lead.etapa !== 'Fechado' && lead.etapa !== 'Perdido' && (
+                                  <button
+                                    onClick={() => { setOpenDropdownId(null); requestStageUpdate(lead.id, 'Perdido'); }}
+                                    className="px-4 py-2 mt-1 hover:bg-red-50 text-red-600 flex items-center gap-2 w-full text-left border-t border-slate-100"
+                                  >
+                                    ✕ Marcar como Perdido
+                                  </button>
+                                )}
+
+                                <button
+                                  onClick={() => {
+                                    setOpenDropdownId(null);
+                                    if (confirm('Eliminar esta oportunidade do histórico?')) {
+                                      onDeleteOportunidade(lead.id);
+                                    }
+                                  }}
+                                  className="px-4 py-2 hover:bg-red-50 text-red-600 flex items-center gap-2 w-full text-left"
+                                >
+                                  <Trash2 className="w-4 h-4" /> Eliminar Registo
+                                </button>
+
+                              </div>
+                            </>
                           )}
-
-                          {/* Quick selector dropdown */}
-                          <select
-                            value={lead.etapa}
-                            onChange={(e) => requestStageUpdate(lead.id, e.target.value as PipelineEtapa)}
-                            className="text-[10px] bg-white hover:bg-slate-50 border border-slate-205 rounded px-2 py-1 text-slate-600 cursor-pointer focus:outline-none"
-                          >
-                            {ETAPAS_ORDENADAS.map(et => (
-                              <option key={et} value={et}>{et}</option>
-                            ))}
-                          </select>
-
-                          {/* Mark as lost direct button */}
-                          {lead.etapa !== 'Fechado' && lead.etapa !== 'Perdido' && (
-                            <button
-                              onClick={() => requestStageUpdate(lead.id, 'Perdido')}
-                              className="p-1 px-1.5 text-slate-400 hover:text-red-500 border border-slate-200 hover:border-red-200 rounded cursor-pointer"
-                              title="Perdido"
-                            >
-                              ✕ Perdido
-                            </button>
-                          )}
-
-                          {/* Delete Opportunity */}
-                          <button
-                            onClick={() => {
-                              if (confirm('Eliminar esta oportunidade do histórico?')) {
-                                onDeleteOportunidade(lead.id);
-                              }
-                            }}
-                            className="p-1 ml-1 text-slate-300 hover:text-red-650 transition cursor-pointer"
-                            title="Eliminar Lead"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -627,9 +754,14 @@ export default function Pipeline({
 
       {/* Standalone Add Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-
+        <div 
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-left"
+          onClick={() => setShowAddModal(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-xl w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-5 border-b border-slate-100 bg-slate-900 text-white flex justify-between items-center">
               <h3 className="font-bold flex items-center gap-2 text-sm uppercase">
                 <Building2 className="w-5 h-5 text-orange-500" />
@@ -661,8 +793,8 @@ export default function Pipeline({
                 <label className="block text-[10px] font-bold text-slate-700 mb-1 uppercase">Serviço Proposto</label>
                 <select
                   value={newOptServico}
-                  onChange={(e) => setNewOptServico(e.target.value as ServicoDisponivel)}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
+                  onChange={(e) => setNewOptServico(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none text-slate-700 font-medium"
                 >
                   {listServicos.map(s => (
                     <option key={s} value={s}>{s}</option>
@@ -687,10 +819,11 @@ export default function Pipeline({
                   <select
                     value={newOptResponsavel}
                     onChange={(e) => setNewOptResponsavel(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg"
+                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
                   >
-                    <option value="Director Comercial">Director Comercial</option>
-                    <option value="Director Operacional">Director Operacional</option>
+                    {profiles.map(p => (
+                      <option key={p.id} value={p.nome}>{p.nome}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -743,9 +876,18 @@ export default function Pipeline({
 
       {/* MOTIVO DE PERDA MODAL */}
       {showPerdaModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
-
+        <div 
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in text-left"
+          onClick={() => {
+            setShowPerdaModal(false);
+            setPerdaLeadId(null);
+            setPendingEtapaChange(null);
+          }}
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-4 bg-red-600 text-white flex justify-between items-center">
               <h3 className="font-extrabold flex items-center gap-2 text-xs uppercase tracking-wider">
                 <AlertOctagon className="w-5 h-5" />
@@ -823,9 +965,14 @@ export default function Pipeline({
         const relatedContacts = contactos.filter(c => c.empresa_id === companyId);
 
         return (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg border border-slate-100 overflow-hidden text-left">
-
+          <div 
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-left"
+            onClick={() => setPhoneModalLead(null)}
+          >
+            <div 
+              className="bg-white rounded-2xl shadow-xl w-full max-w-lg border border-slate-100 overflow-hidden text-left"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="p-5 border-b border-slate-100 bg-slate-950 text-white flex justify-between items-center">
                 <div className="flex items-center gap-2.5">
                   <div className="p-1.5 bg-slate-900 rounded-lg text-orange-500">
@@ -943,6 +1090,189 @@ export default function Pipeline({
           </div>
         );
       })()}
+
+      {/* CREATE COMPANY MODAL IN PIPELINE */}
+      {showCreateModal && (
+        <div 
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          onClick={() => setShowCreateModal(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-900 text-white">
+              <h3 className="font-bold flex items-center gap-2 text-sm uppercase">
+                <Building2 className="w-5 h-5 text-orange-500" />
+                Adicionar Nova Empresa
+              </h3>
+              <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-white cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateEmpresaSubmit} className="p-5 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div className="sm:col-span-2">
+                  <label className="block text-[10px] font-bold text-slate-700 mb-1 uppercase">Nome da Empresa *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Sodiba S.A."
+                    value={newEmpName}
+                    onChange={(e) => setNewEmpName(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-700 mb-1 uppercase">Nicho Comercial</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Alimentar, Imobiliário"
+                    value={newEmpNicho}
+                    onChange={(e) => setNewEmpNicho(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-700 mb-1 uppercase">Telefone Principal *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: +244 9..."
+                    value={newEmpPhone}
+                    onChange={(e) => setNewEmpPhone(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-700 mb-1 uppercase">Cidade</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Luanda"
+                    value={newEmpCidade}
+                    onChange={(e) => setNewEmpCidade(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-700 mb-1 uppercase">Endereço Completo</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Talatona"
+                    value={newEmpEndereco}
+                    onChange={(e) => setNewEmpEndereco(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-700 mb-1 uppercase">Website</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: www.empresa.com"
+                    value={newEmpWeb}
+                    onChange={(e) => setNewEmpWeb(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-700 mb-1 uppercase">Instagram</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: @empresa"
+                    value={newEmpInsta}
+                    onChange={(e) => setNewEmpInsta(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-[10px] font-bold text-slate-700 mb-1 uppercase">Observações Operacionais</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Alguma nota chave?"
+                    value={newEmpObs}
+                    onChange={(e) => setNewEmpObs(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg"
+                  ></textarea>
+                </div>
+
+                {/* Optional Contact Fields */}
+                <div className="sm:col-span-2 border-t border-slate-100 pt-4 space-y-3">
+                  <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-1.5">
+                    <User className="w-4 h-4 text-orange-500" />
+                    Contacto Associado (Opcional)
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                    <div>
+                      <label className="block text-[9px] font-bold text-slate-650 mb-0.5">Nome do Contacto</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: Pedro Santos"
+                        value={newEmpConNome}
+                        onChange={(e) => setNewEmpConNome(e.target.value)}
+                        className="w-full px-2.5 py-1 border border-slate-200 rounded focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-bold text-slate-650 mb-0.5">Cargo</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: Gestor"
+                        value={newEmpConCargo}
+                        onChange={(e) => setNewEmpConCargo(e.target.value)}
+                        className="w-full px-2.5 py-1 border border-slate-200 rounded"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-bold text-slate-650 mb-0.5">Email</label>
+                      <input
+                        type="email"
+                        placeholder="Ex: pedro@empresa.com"
+                        value={newEmpConEmail}
+                        onChange={(e) => setNewEmpConEmail(e.target.value)}
+                        className="w-full px-2.5 py-1 border border-slate-200 rounded focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-bold text-slate-650 mb-0.5">Telefone</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: 923..."
+                        value={newEmpConTel}
+                        onChange={(e) => setNewEmpConTel(e.target.value)}
+                        className="w-full px-2.5 py-1 border border-slate-200 rounded focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  Salvar Empresa
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

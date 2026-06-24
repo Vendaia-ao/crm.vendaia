@@ -8,7 +8,10 @@ import {
   HistoricoItem, 
   PipelineEtapa, 
   EstadoProjecto,
-  MotivoPerda
+  MotivoPerda,
+  Cliente,
+  EstadoCliente,
+  ProximaAcaoComercial
 } from './types';
 import { 
   INITIAL_EMPRESAS, 
@@ -24,6 +27,7 @@ import Dashboard from './components/Dashboard';
 import Empresas from './components/Empresas';
 import Pipeline from './components/Pipeline';
 import Projectos from './components/Projectos';
+import Clientes from './components/Clientes';
 import Utilizadores from './components/Utilizadores';
 import { 
   Building2, 
@@ -37,7 +41,13 @@ import {
   Sparkles,
   RefreshCw,
   Menu,
-  Shield
+  Shield,
+  Settings,
+  Users,
+  Plus,
+  Trash2,
+  Key,
+  X
 } from 'lucide-react';
 
 export default function App() {
@@ -78,12 +88,35 @@ export default function App() {
     ];
   });
 
+  // Clientes (post-sales CRM clients)
+  const [clientes, setClientes] = useState<Cliente[]>(() => {
+    const saved = localStorage.getItem('vendaia_clientes');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Dynamic services configuration persisted locally
+  const DEFAULT_SERVICOS = ['Website', 'Email Corporativo', 'Branding', 'Social Media', 'Tráfego Pago', 'Sistema Personalizado', 'Consultoria Tecnológica'];
+  const [servicosConfig, setServicosConfig] = useState<string[]>(() => {
+    const saved = localStorage.getItem('vendaia_servicos_config');
+    return saved ? JSON.parse(saved) : DEFAULT_SERVICOS;
+  });
+
   // Navigation module state
-  const [activeModule, setActiveModule] = useState<'dashboard' | 'empresas' | 'pipeline' | 'projectos' | 'utilizadores'>('dashboard');
+  const [activeModule, setActiveModule] = useState<'dashboard' | 'empresas' | 'pipeline' | 'clientes' | 'projectos' | 'utilizadores'>('dashboard');
 
   // Main Menu Hamburguer responsive States
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Advanced settings modal
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [newServicoInput, setNewServicoInput] = useState('');
+
+  // Password change modal
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Database status and sync states
   const [dbStatus, setDbStatus] = useState<{ connected: boolean; tablesExist: boolean; error: string | null }>({
@@ -182,6 +215,76 @@ export default function App() {
             }
           }
 
+          // --- MIGRAÇÃO RETROACTIVA ---
+          // Verifica se existem oportunidades 'Fechado' que não tenham Cliente e Projecto associados.
+          let migracoes = 0;
+          let tempClientes = [...(JSON.parse(localStorage.getItem('vendaia_clientes') || '[]'))];
+          const tempProjectos = [...cleanProjectos];
+          const tempHistorico = [...cleanHistorico];
+
+          cleanOportunidades.forEach(opt => {
+            if (opt.etapa === 'Fechado') {
+              const clienteExiste = tempClientes.some(c => c.projeto_associado !== undefined && 
+                tempProjectos.some(p => p.oportunidade_id === opt.id && p.id === c.projeto_associado));
+              const projectoExiste = tempProjectos.some(p => p.oportunidade_id === opt.id);
+
+              if (!clienteExiste && !projectoExiste) {
+                const d = new Date(opt.data_entrada);
+                const start = d.toISOString();
+                d.setDate(d.getDate() + 30);
+                const due = d.toISOString().split('T')[0];
+
+                const projId = 'proj-mig-' + opt.id;
+                const clienteId = 'cli-mig-' + opt.id;
+
+                const emp = cleanEmpresas.find(e => e.id === opt.empresa_id);
+                const con = cleanContactos.find(c => c.empresa_id === opt.empresa_id);
+
+                const newCliente: Cliente = {
+                  id: clienteId,
+                  nome_empresa: emp ? emp.nome_empresa : 'Empresa Associada',
+                  contacto_principal: con ? con.nome : '',
+                  telefone: con ? con.telefone : (emp ? emp.telefone_principal : ''),
+                  email: con ? con.email : '',
+                  servico_contratado: opt.servico,
+                  valor_negocio: opt.valor_estimado,
+                  data_fecho: opt.data_entrada,
+                  projeto_associado: projId,
+                  estado: 'Cliente Ativo',
+                  proxima_acao: ''
+                };
+                tempClientes = [newCliente, ...tempClientes];
+
+                const newProj: Projecto = {
+                  id: projId,
+                  empresa_id: opt.empresa_id,
+                  cliente_id: clienteId,
+                  servico: opt.servico,
+                  valor: opt.valor_estimado,
+                  data_inicio: start,
+                  prazo: due,
+                  responsavel: opt.responsavel,
+                  estado: 'Em Produção',
+                  observacoes: 'Gerado automaticamente por migração retroactiva.',
+                  oportunidade_id: opt.id
+                };
+                tempProjectos.push(newProj);
+
+                migracoes++;
+              }
+            }
+          });
+
+          if (migracoes > 0) {
+            setClientes(tempClientes);
+            setProjectos(tempProjectos);
+            setHistorico(tempHistorico);
+            localStorage.setItem('vendaia_clientes', JSON.stringify(tempClientes));
+            localStorage.setItem('vendaia_projectos', JSON.stringify(tempProjectos));
+            localStorage.setItem('vendaia_historico', JSON.stringify(tempHistorico));
+            console.log(`Migração retroactiva: ${migracoes} leads fechados antigos processados.`);
+          }
+
           setLastSynced(new Date().toLocaleTimeString('pt-AO'));
         }
       } catch (err: any) {
@@ -221,6 +324,14 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('vendaia_profiles', JSON.stringify(profiles));
   }, [profiles]);
+
+  useEffect(() => {
+    localStorage.setItem('vendaia_clientes', JSON.stringify(clientes));
+  }, [clientes]);
+
+  useEffect(() => {
+    localStorage.setItem('vendaia_servicos_config', JSON.stringify(servicosConfig));
+  }, [servicosConfig]);
 
   // Silent debounced background sync to Supabase when active states change
   useEffect(() => {
@@ -562,38 +673,71 @@ export default function App() {
     };
     setHistorico([log, ...historico]);
 
-    // Automation: If Won ('Fechado'), automatically instantiate corresponding Projecto
+    // Automacao: Se 'Fechado', criar Cliente + Projecto automaticamente (sem duplicados)
     if (novaEtapa === 'Fechado') {
-      const exists = projectos.some(p => p.oportunidade_id === id);
-      if (!exists) {
+      // Verificar se ja existe um cliente associado a esta oportunidade
+      const clienteJaExiste = clientes.some(c => c.projeto_associado !== undefined && 
+        projectos.some(p => p.oportunidade_id === id && p.id === c.projeto_associado));
+      const projectoJaExiste = projectos.some(p => p.oportunidade_id === id);
+
+      if (!clienteJaExiste && !projectoJaExiste) {
         const d = new Date();
         const start = d.toISOString();
-        d.setDate(d.getDate() + 30); // 30-day baseline duration
+        d.setDate(d.getDate() + 30);
         const due = d.toISOString().split('T')[0];
 
+        const projId = 'proj-' + Date.now();
+        const clienteId = 'cli-' + Date.now();
+
+        // Dados da empresa e contacto
+        const empAssociada = empresas.find(e => e.id === previousLead.empresa_id);
+        const contactoAssociado = contactos.find(c => c.empresa_id === previousLead.empresa_id);
+
+        // 1. Criar registo de Cliente
+        const estadoInicial: EstadoCliente = 'Aguardando Apresentação';
+        const acaoInicial: ProximaAcaoComercial = 'Agendar Reunião';
+
+        const newCliente: Cliente = {
+          id: clienteId,
+          nome_empresa: empAssociada ? empAssociada.nome_empresa : 'Empresa Associada',
+          contacto_principal: contactoAssociado ? contactoAssociado.nome : '',
+          telefone: contactoAssociado ? contactoAssociado.telefone : (empAssociada ? empAssociada.telefone_principal : ''),
+          email: contactoAssociado ? contactoAssociado.email : '',
+          servico_contratado: previousLead.servico,
+          valor_negocio: previousLead.valor_estimado,
+          data_fecho: new Date().toISOString(),
+          projeto_associado: projId,
+          estado: estadoInicial,
+          proxima_acao: acaoInicial
+        };
+        setClientes(prev => [newCliente, ...prev]);
+
+        // 2. Criar registo de Projecto
+        const estadoProj: EstadoProjecto = 'Em Produção';
         const newProj: Projecto = {
-          id: `proj-${Date.now()}`,
+          id: projId,
           empresa_id: previousLead.empresa_id,
+          cliente_id: clienteId,
           servico: previousLead.servico,
           valor: previousLead.valor_estimado,
           data_inicio: start,
           prazo: due,
           responsavel: previousLead.responsavel,
-          estado: 'Em Produção',
-          observacoes: previousLead.observacoes || 'Trabalho faturado. Transmitido automaticamente para a equipa técnica para início imediato.',
+          estado: estadoProj,
+          observacoes: previousLead.observacoes || 'Faturado. Transmitido automaticamente para a equipa tecnica.',
           oportunidade_id: id
         };
-
         setProjectos(prev => [...prev, newProj]);
 
-        // Second log for pipeline project link
+        // 3. Log de historico
+        const nomeEmpresa = empAssociada ? empAssociada.nome_empresa : 'Empresa';
         const projLog: HistoricoItem = {
-          id: `hist-${Date.now() + 1}`,
+          id: 'hist-' + (Date.now() + 1),
           empresa_id: previousLead.empresa_id,
           autor: 'Sistema Vendaia',
           data: new Date().toISOString(),
-          tipo: 'projeto',
-          descricao: `Sucesso de Fechamento! Novo projeto de '${previousLead.servico}' criado dinamicamente.`
+          tipo: 'cliente',
+          descricao: 'Negocio fechado! Cliente "' + nomeEmpresa + '" registado automaticamente no modulo Clientes e projeto de "' + previousLead.servico + '" criado no modulo Projectos.'
         };
         setHistorico(prev => [projLog, log, ...prev]);
       }
@@ -607,6 +751,17 @@ export default function App() {
 
     setProjectos(projectos.map(p => p.id === id ? { ...p, estado: novoEstado } : p));
 
+    // Se projeto transita para 'Pronto para Entrega', notificar cliente associado
+    if (novoEstado === 'Pronto para Entrega' && prevProj.cliente_id) {
+      const estadoEntrega: EstadoCliente = 'Aguardando Apresentação';
+      const acaoEntrega: ProximaAcaoComercial = 'Apresentar Projeto';
+      setClientes(prev => prev.map(c =>
+        c.id === prevProj.cliente_id
+          ? { ...c, estado: estadoEntrega, proxima_acao: acaoEntrega }
+          : c
+      ));
+    }
+
     // Log the change
     const log: HistoricoItem = {
       id: `hist-${Date.now()}`,
@@ -617,6 +772,132 @@ export default function App() {
       descricao: `Actualizou estado do projecto de '${prevProj.estado}' para '${novoEstado}'`
     };
     setHistorico([log, ...historico]);
+  };
+
+  const handleAddProjecto = (projecto: Omit<Projecto, 'id' | 'data_inicio'>) => {
+    const newProj: Projecto = {
+      ...projecto,
+      id: `proj-${Date.now()}`,
+      data_inicio: new Date().toISOString()
+    };
+    setProjectos([newProj, ...projectos]);
+    
+    // Log
+    const log: HistoricoItem = {
+      id: `hist-${Date.now() + 1}`,
+      empresa_id: newProj.empresa_id,
+      autor: currentUser?.nome || 'Sistema',
+      data: new Date().toISOString(),
+      tipo: 'projeto',
+      descricao: `Adicionou manualmente um novo projecto de '${newProj.servico}'.`
+    };
+    setHistorico([log, ...historico]);
+  };
+
+  const handleDeleteProjecto = async (id: string) => {
+    setProjectos(projectos.filter(p => p.id !== id));
+    if (dbStatus.connected && dbStatus.tablesExist && supabase) {
+      try {
+        const { error } = await supabase.from("projectos").delete().eq("id", id);
+        if (error) throw error;
+      } catch (err) {
+        console.warn("Erro ao eliminar projecto no Supabase:", err);
+      }
+    }
+  };
+
+  // Core Mutation triggers - Cliente
+  const handleUpdateClienteEstado = (
+    id: string,
+    estado: EstadoCliente,
+    reuniaoData?: { data?: string; hora?: string; local?: string; obs?: string }
+  ) => {
+    setClientes(prev => prev.map(c => {
+      if (c.id !== id) return c;
+      return {
+        ...c,
+        estado,
+        data_reuniao: reuniaoData?.data ?? c.data_reuniao,
+        hora_reuniao: reuniaoData?.hora ?? c.hora_reuniao,
+        local_reuniao: reuniaoData?.local ?? c.local_reuniao,
+        observacoes_reuniao: reuniaoData?.obs ?? c.observacoes_reuniao
+      };
+    }));
+  };
+
+  const handleUpdateClienteProximaAcao = (id: string, acao: ProximaAcaoComercial) => {
+    setClientes(prev => prev.map(c => c.id === id ? { ...c, proxima_acao: acao } : c));
+  };
+
+  const handleAddCliente = (cliente: Omit<Cliente, 'id' | 'data_fecho'>) => {
+    const newCliente: Cliente = {
+      ...cliente,
+      id: `cli-${Date.now()}`,
+      data_fecho: new Date().toISOString()
+    };
+    setClientes([newCliente, ...clientes]);
+  };
+
+  const handleDeleteCliente = async (id: string) => {
+    setClientes(clientes.filter(c => c.id !== id));
+    if (dbStatus.connected && dbStatus.tablesExist && supabase) {
+      try {
+        const { error } = await supabase.from("clientes").delete().eq("id", id);
+        if (error) throw error;
+      } catch (err) {
+        console.warn("Erro ao eliminar cliente no Supabase:", err);
+      }
+    }
+  };
+
+  // Services configuration handlers
+  const handleAddServico = () => {
+    const trimmed = newServicoInput.trim();
+    if (!trimmed) return;
+    if (servicosConfig.includes(trimmed)) {
+      alert('Este serviço já existe na lista.');
+      return;
+    }
+    setServicosConfig(prev => [...prev, trimmed]);
+    setNewServicoInput('');
+  };
+
+  const handleRemoveServico = (s: string) => {
+    if (servicosConfig.length <= 1) {
+      alert('Tem de existir pelo menos um serviço configurado.');
+      return;
+    }
+    if (confirm(`Remover o serviço '${s}' da configuração?`)) {
+      setServicosConfig(prev => prev.filter(x => x !== s));
+    }
+  };
+
+  // Password change handler
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      alert('As palavras-passe não coincidem.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      alert('A palavra-passe deve ter pelo menos 6 caracteres.');
+      return;
+    }
+    setIsChangingPassword(true);
+    try {
+      if (supabase) {
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        if (error) throw error;
+      }
+      alert('Palavra-passe alterada com sucesso!');
+      setShowPasswordModal(false);
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      alert(`Erro ao alterar palavra-passe: ${err.message || 'Tente novamente.'}`);
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   const handleUpdateProjectoPrazoObs = (id: string, novoPrazo: string, novasObs: string) => {
@@ -645,7 +926,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col md:flex-row overflow-x-hidden">
+    <div className="h-screen overflow-hidden bg-slate-50 text-slate-900 font-sans flex flex-col md:flex-row">
       
       {/* DESKTOP SIDEBAR - VISIBLE ON MD AND UP */}
       <aside className={`hidden md:flex ${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-white border-r border-slate-200 flex-col h-screen sticky top-0 shrink-0 transition-all duration-300`}>
@@ -736,18 +1017,32 @@ export default function App() {
           )}
 
           {hasPermission('projectos') && (
-            <button
-              onClick={() => setActiveModule('projectos')}
-              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${
-                activeModule === 'projectos'
-                  ? 'bg-blue-50/85 text-blue-700 border-blue-700'
-                  : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
-              }`}
-              title="Gestão de Projetos"
-            >
-              <FolderLock className="w-4 h-4 shrink-0 text-slate-400" />
-              {!isSidebarCollapsed && <span>Gestão Projectos</span>}
-            </button>
+            <>
+              <button
+                onClick={() => setActiveModule('clientes')}
+                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${
+                  activeModule === 'clientes'
+                    ? 'bg-blue-50/85 text-blue-700 border-blue-700'
+                    : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
+                }`}
+                title="Clientes Ativos"
+              >
+                <Users className="w-4 h-4 shrink-0 text-slate-400" />
+                {!isSidebarCollapsed && <span>Clientes</span>}
+              </button>
+              <button
+                onClick={() => setActiveModule('projectos')}
+                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${
+                  activeModule === 'projectos'
+                    ? 'bg-blue-50/85 text-blue-700 border-blue-700'
+                    : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
+                }`}
+                title="Gestão de Projetos"
+              >
+                <FolderLock className="w-4 h-4 shrink-0 text-slate-400" />
+                {!isSidebarCollapsed && <span>Projectos</span>}
+              </button>
+            </>
           )}
 
           {hasPermission('utilizadores') && (
@@ -762,6 +1057,17 @@ export default function App() {
             >
               <Shield className="w-4 h-4 shrink-0 text-slate-400" />
               {!isSidebarCollapsed && <span>Utilizadores & Acessos</span>}
+            </button>
+          )}
+
+          {hasPermission('utilizadores') && (
+            <button
+              onClick={() => setShowSettingsModal(true)}
+              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent`}
+              title="Configurações Avançadas"
+            >
+              <Settings className="w-4 h-4 shrink-0 text-slate-400" />
+              {!isSidebarCollapsed && <span>Configurações</span>}
             </button>
           )}
 
@@ -947,14 +1253,24 @@ export default function App() {
             </button>
           )}
           {hasPermission('projectos') && (
-            <button
-              onClick={() => setActiveModule('projectos')}
-              className={`px-3 py-1 rounded text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${
-                activeModule === 'projectos' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
-              }`}
-            >
-              Projectos
-            </button>
+            <>
+              <button
+                onClick={() => setActiveModule('clientes')}
+                className={`px-3 py-1 rounded text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${
+                  activeModule === 'clientes' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
+                }`}
+              >
+                Clientes
+              </button>
+              <button
+                onClick={() => setActiveModule('projectos')}
+                className={`px-3 py-1 rounded text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${
+                  activeModule === 'projectos' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
+                }`}
+              >
+                Projectos
+              </button>
+            </>
           )}
           {hasPermission('utilizadores') && (
             <button
@@ -976,11 +1292,17 @@ export default function App() {
         <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-8 shrink-0">
           <div className="flex items-center gap-3">
             <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight capitalize select-none">
-              {activeModule === 'projectos' ? 'Gestão de Projectos' : activeModule === 'pipeline' ? 'Pipeline Comercial' : activeModule === 'utilizadores' ? 'Utilizadores & Acessos' : activeModule}
+              {activeModule === 'projectos' ? 'Gestão de Projectos' 
+                : activeModule === 'pipeline' ? 'Pipeline Comercial' 
+                : activeModule === 'utilizadores' ? 'Utilizadores & Acessos'
+                : activeModule === 'clientes' ? 'Clientes Ativos'
+                : activeModule === 'empresas' ? 'Base de Empresas'
+                : activeModule === 'dashboard' ? 'Dashboard'
+                : activeModule}
             </h1>
             <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 transition text-[11px] text-slate-600 font-semibold rounded-md border border-slate-200">
               <Activity className="w-3 h-3 text-emerald-500 animate-pulse" />
-              {currentUser.nome} ({currentUser.perfil})
+              {currentUser.nome}
             </span>
           </div>
 
@@ -995,6 +1317,7 @@ export default function App() {
             <Dashboard
               oportunidades={oportunidades}
               empresas={empresas}
+              servicosConfig={servicosConfig}
             />
           )}
 
@@ -1020,6 +1343,22 @@ export default function App() {
               onAddOportunidade={handleAddOportunidade}
               onUpdateOportunidadeEtapa={handleUpdateOportunidadeEtapa}
               onDeleteOportunidade={handleDeleteOportunidade}
+              onAddEmpresa={handleAddEmpresa}
+              profiles={profiles}
+              servicosConfig={servicosConfig}
+            />
+          )}
+
+          {activeModule === 'clientes' && (
+            <Clientes
+              clientes={clientes}
+              projectos={projectos}
+              empresas={empresas}
+              servicosConfig={servicosConfig}
+              onUpdateClienteEstado={handleUpdateClienteEstado}
+              onUpdateClienteProximaAcao={handleUpdateClienteProximaAcao}
+              onAddCliente={handleAddCliente}
+              onDeleteCliente={handleDeleteCliente}
             />
           )}
 
@@ -1027,8 +1366,13 @@ export default function App() {
             <Projectos
               projectos={projectos}
               empresas={empresas}
+              clientes={clientes}
+              profiles={profiles}
+              servicosConfig={servicosConfig}
               onUpdateProjectoStatus={handleUpdateProjectoStatus}
               onUpdateProjectoPrazoObs={handleUpdateProjectoPrazoObs}
+              onAddProjecto={handleAddProjecto}
+              onDeleteProjecto={handleDeleteProjecto}
             />
           )}
 
@@ -1318,7 +1662,170 @@ CREATE POLICY "Acesso total Historico" ON historico FOR ALL TO anon, authenticat
         </div>
       )}
 
+      {/* ===== CONFIGURAÇÕES AVANÇADAS MODAL ===== */}
+      {showSettingsModal && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setShowSettingsModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-slate-800 to-slate-700 p-5 flex justify-between items-center">
+              <div>
+                <h2 className="text-white font-bold text-lg flex items-center gap-2">
+                  <Settings className="w-5 h-5" /> Configurações Avançadas
+                </h2>
+                <p className="text-slate-300 text-xs mt-0.5">Gerir serviços, acessos e preferências do sistema</p>
+              </div>
+              <button onClick={() => setShowSettingsModal(false)} className="text-slate-300 hover:text-white transition">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-6">
+              {/* Services Management */}
+              <div>
+                <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-purple-500" /> Serviços Disponíveis
+                </h3>
+                <p className="text-xs text-slate-500 mb-3">
+                  Estes serviços aparecem em todos os selectores de serviço da plataforma.
+                </p>
+                <div className="flex flex-wrap gap-2 mb-3 min-h-[44px] bg-slate-50 rounded-xl p-3 border border-slate-200">
+                  {servicosConfig.map(s => (
+                    <span
+                      key={s}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800"
+                    >
+                      {s}
+                      <button
+                        onClick={() => handleRemoveServico(s)}
+                        className="hover:text-red-600 transition ml-1"
+                        title={`Remover "${s}"`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newServicoInput}
+                    onChange={e => setNewServicoInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleAddServico()}
+                    placeholder="Novo serviço (ex: SEO, Consultoria...)"
+                    className="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                  />
+                  <button
+                    onClick={handleAddServico}
+                    className="bg-blue-600 text-white px-3 py-2 rounded-xl hover:bg-blue-700 transition flex items-center gap-1 text-sm font-semibold"
+                  >
+                    <Plus className="w-4 h-4" /> Adicionar
+                  </button>
+                </div>
+              </div>
+
+              <hr className="border-slate-100" />
+
+              {/* Password Change Section */}
+              <div>
+                <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                  <Key className="w-4 h-4 text-amber-500" /> Segurança da Conta
+                </h3>
+                <button
+                  onClick={() => { setShowSettingsModal(false); setShowPasswordModal(true); }}
+                  className="flex items-center gap-2 px-4 py-2.5 border border-amber-300 bg-amber-50 text-amber-800 rounded-xl hover:bg-amber-100 transition text-sm font-semibold w-full"
+                >
+                  <Key className="w-4 h-4" /> Alterar Palavra-passe
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+              <button
+                onClick={() => setShowSettingsModal(false)}
+                className="px-5 py-2 bg-slate-800 text-white rounded-xl hover:bg-slate-700 font-semibold text-sm transition"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== ALTERAR PALAVRA-PASSE MODAL ===== */}
+      {showPasswordModal && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setShowPasswordModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="bg-gradient-to-r from-amber-600 to-amber-500 p-5 flex justify-between items-center">
+              <div>
+                <h2 className="text-white font-bold text-lg flex items-center gap-2">
+                  <Key className="w-5 h-5" /> Alterar Palavra-passe
+                </h2>
+                <p className="text-amber-100 text-xs mt-0.5">Defina uma nova palavra-passe para a sua conta</p>
+              </div>
+              <button onClick={() => setShowPasswordModal(false)} className="text-amber-100 hover:text-white transition">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleChangePassword} className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-600 mb-1 block">Nova Palavra-passe</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  placeholder="Mínimo 6 caracteres"
+                  className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-amber-400 outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-600 mb-1 block">Confirmar Palavra-passe</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  placeholder="Repita a nova palavra-passe"
+                  className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-amber-400 outline-none"
+                />
+              </div>
+              <div className="pt-2 flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordModal(false)}
+                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 text-sm font-semibold transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isChangingPassword}
+                  className="px-5 py-2 bg-amber-600 text-white rounded-xl hover:bg-amber-700 text-sm font-bold transition disabled:opacity-60"
+                >
+                  {isChangingPassword ? 'A alterar...' : 'Confirmar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
-
