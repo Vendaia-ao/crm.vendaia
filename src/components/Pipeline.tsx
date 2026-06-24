@@ -348,7 +348,7 @@ export default function Pipeline({
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-450 uppercase tracking-wider">
             <Filter className="w-4 h-4 text-orange-500" />
-            Filtrar Kanban:
+            Filtros:
           </div>
 
           <div className="flex items-center gap-1">
@@ -358,7 +358,7 @@ export default function Pipeline({
               onChange={(e) => setFilterResponsavel(e.target.value)}
               className="bg-slate-50 border border-slate-200 text-xs text-slate-650 font-bold rounded px-2.5 py-1 focus:outline-none"
             >
-              <option value="todos">Todos os Responsáveis</option>
+              <option value="todos">Todos</option>
               {profiles.map(p => (
                 <option key={p.id} value={p.nome}>{p.nome}</option>
               ))}
@@ -372,7 +372,7 @@ export default function Pipeline({
               onChange={(e) => setFilterServico(e.target.value)}
               className="bg-slate-50 border border-slate-200 text-xs text-slate-600 rounded px-2.5 py-1 focus:outline-none"
             >
-              <option value="todos">Todos os Serviços</option>
+              <option value="todos">Todos</option>
               {listServicos.map(s => (
                 <option key={s} value={s}>{s}</option>
               ))}
@@ -386,7 +386,7 @@ export default function Pipeline({
               onChange={(e) => setFilterEtapa(e.target.value)}
               className="bg-slate-50 border border-slate-200 text-xs text-slate-650 font-bold rounded px-2.5 py-1 focus:outline-none"
             >
-              <option value="todos">Todas as Fases</option>
+              <option value="todos">Todas</option>
               {ETAPAS_ORDENADAS.map(e => (
                 <option key={e} value={e}>{e}</option>
               ))}
