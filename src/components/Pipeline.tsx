@@ -375,7 +375,7 @@ export default function Pipeline({
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-450 uppercase tracking-wider">
             <Filter className="w-4 h-4 text-orange-500" />
-            Filtrar Kanban:
+            Filtros:
           </div>
 
           <div className="flex items-center gap-1">
@@ -385,7 +385,7 @@ export default function Pipeline({
               onChange={(e) => setFilterResponsavel(e.target.value)}
               className="bg-slate-50 border border-slate-200 text-xs text-slate-650 font-bold rounded-none px-2.5 py-1 focus:outline-none"
             >
-              <option value="todos">Todos os Responsáveis</option>
+              <option value="todos">Todos</option>
               {profiles.map(p => (
                 <option key={p.id} value={p.nome}>{p.nome}</option>
               ))}
@@ -399,7 +399,7 @@ export default function Pipeline({
               onChange={(e) => setFilterServico(e.target.value)}
               className="bg-slate-50 border border-slate-200 text-xs text-slate-600 rounded-none px-2.5 py-1 focus:outline-none"
             >
-              <option value="todos">Todos os Serviços</option>
+              <option value="todos">Todos</option>
               {listServicos.map(s => (
                 <option key={s} value={s}>{s}</option>
               ))}
@@ -413,7 +413,7 @@ export default function Pipeline({
               onChange={(e) => setFilterEtapa(e.target.value)}
               className="bg-slate-50 border border-slate-200 text-xs text-slate-650 font-bold rounded-none px-2.5 py-1 focus:outline-none"
             >
-              <option value="todos">Todas as Fases</option>
+              <option value="todos">Todas</option>
               {ETAPAS_ORDENADAS.map(e => (
                 <option key={e} value={e}>{e}</option>
               ))}
@@ -506,13 +506,13 @@ export default function Pipeline({
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  <th className="px-5 py-3">Empresa Lead</th>
-                  <th className="px-5 py-3">Data de Adição</th>
-                  <th className="px-5 py-3">Serviço Solicitado</th>
-                  <th className="px-5 py-3">Valor Estimado</th>
-                  <th className="px-5 py-3">Sócio Responsável</th>
+                  <th className="px-5 py-3">Lead</th>
+                  <th className="px-5 py-3">Data</th>
+                  <th className="px-5 py-3">Serviço</th>
+                  <th className="px-5 py-3">Valor</th>
+                  <th className="px-5 py-3">Responsável</th>
                   <th className="px-4 py-3">Origem</th>
-                  <th className="px-5 py-3 text-center">Fase / Estágio</th>
+                  <th className="px-5 py-3 text-center">Fase/Estágio</th>
                   <th className="px-5 py-3 text-right">Acções</th>
                 </tr>
               </thead>
