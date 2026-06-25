@@ -88,6 +88,7 @@ export type EstadoProjecto =
   | 'Em Produção'
   | 'Em Revisão'
   | 'Pronto para Entrega'
+  | 'Apresentação Agendada'
   | 'Entregue';
 
 export interface Projecto {

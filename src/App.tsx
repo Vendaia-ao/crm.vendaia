@@ -499,7 +499,8 @@ export default function App() {
     novaEtapa: PipelineEtapa, 
     motivoPerda?: MotivoPerda, 
     perdaDetalhe?: string,
-    notaExtra?: string
+    notaExtra?: string,
+    valorAcordado?: number
   ) => {
     const previousLead = oportunidades.find(o => o.id === id);
     if (!previousLead) return;
@@ -511,7 +512,8 @@ export default function App() {
           etapa: novaEtapa,
           motivo_perda: novaEtapa === 'Perdido' ? motivoPerda : undefined,
           motivo_perda_detalhe: novaEtapa === 'Perdido' ? perdaDetalhe : undefined,
-          observacoes: notaExtra ? (opt.observacoes ? `${opt.observacoes}\n${notaExtra}` : notaExtra) : opt.observacoes
+          observacoes: notaExtra ? (opt.observacoes ? `${opt.observacoes}\n${notaExtra}` : notaExtra) : opt.observacoes,
+          valor_estimado: valorAcordado !== undefined ? valorAcordado : opt.valor_estimado
         };
       }
       return opt;
@@ -550,7 +552,7 @@ export default function App() {
           id: projId,
           empresa_id: previousLead.empresa_id,
           servico: previousLead.servico,
-          valor: previousLead.valor_estimado,
+          valor: valorAcordado !== undefined ? valorAcordado : previousLead.valor_estimado,
           data_inicio: start,
           prazo: due,
           responsavel: previousLead.responsavel,

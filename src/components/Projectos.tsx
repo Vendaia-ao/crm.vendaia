@@ -16,11 +16,12 @@ interface ProjectosProps {
   onProjectosChanged?: () => void;
 }
 
-const LIST_ESTADOS: EstadoProjecto[] = ['Em Produção', 'Em Revisão', 'Pronto para Entrega', 'Entregue'];
+const LIST_ESTADOS: EstadoProjecto[] = ['Em Produção', 'Em Revisão', 'Pronto para Entrega', 'Apresentação Agendada', 'Entregue'];
 
 function estadoBadge(estado: string) {
   if (estado === 'Em Produção') return 'bg-orange-50 text-orange-700 border-orange-200';
   if (estado === 'Em Revisão') return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+  if (estado === 'Apresentação Agendada') return 'bg-purple-50 text-purple-700 border-purple-200';
   if (estado === 'Pronto para Entrega') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
   if (estado === 'Entregue') return 'bg-slate-50 text-slate-500 border-slate-200';
   return 'bg-slate-50 text-slate-700 border-slate-200';
@@ -184,7 +185,7 @@ export default function Projectos({ empresas, profiles, servicosConfig, onProjec
     setOpenDropdownId(null);
     setDropdownPos(null);
 
-    if (novoEstado === 'Pronto para Entrega') {
+    if (novoEstado === 'Apresentação Agendada') {
       setPendingStatusUpdate({ id, estado: novoEstado });
       setApresentacaoData('');
       setApresentacaoHora('');
@@ -237,8 +238,22 @@ export default function Projectos({ empresas, profiles, servicosConfig, onProjec
 
   const handleApresentacaoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pendingStatusUpdate) return;
-    
+    if (!pendingStatusUpdate || !supabase) return;
+
+    // Build structured note to embed in project observacoes
+    const d = new Date(apresentacaoData).toLocaleDateString('pt-AO');
+    const tag = `[APRESENTAÇÃO AGENDADA] ${d} às ${apresentacaoHora} — ${apresentacaoLocal}`;
+
+    const proj = projectos.find(p => p.id === pendingStatusUpdate.id);
+    const currentObs = proj?.observacoes || '';
+    // Remove any previous tag before writing new one
+    const obsWithoutTag = currentObs.replace(/\[APRESENTAÇÃO AGENDADA\].*?(\n|$)/g, '').trim();
+    const novaObs = obsWithoutTag ? `${obsWithoutTag}\n${tag}` : tag;
+
+    // Update observacoes on the project record
+    await supabase.from('projectos').update({ observacoes: novaObs }).eq('id', pendingStatusUpdate.id);
+    setProjectos(prev => prev.map(p => p.id === pendingStatusUpdate.id ? { ...p, observacoes: novaObs } : p));
+
     const extraData = {
       estado: 'Apresentação Agendada',
       data_reuniao: apresentacaoData,
@@ -528,6 +543,12 @@ export default function Projectos({ empresas, profiles, servicosConfig, onProjec
                     <div className="flex flex-col gap-3 flex-1 overflow-y-auto">
                       {cols.map(proj => {
                         const emp = empresas.find(e => e.id === proj.empresa_id);
+                        const apresentacaoInfo = proj.estado === 'Apresentação Agendada' && proj.observacoes
+                          ? (() => {
+                              const match = proj.observacoes.match(/\[APRESENTAÇÃO AGENDADA\] (.*?)(?=\n|$)/);
+                              return match ? match[1] : null;
+                            })()
+                          : null;
                         return (
                           <div
                             key={proj.id}
@@ -537,6 +558,13 @@ export default function Projectos({ empresas, profiles, servicosConfig, onProjec
                           >
                             <h4 className="font-extrabold text-sm text-slate-800 mb-1 leading-tight">{emp?.nome_empresa || 'Empresa desconhecida'}</h4>
                             <p className="text-[10px] font-bold text-blue-600 uppercase mb-2">{proj.servico}</p>
+
+                            {apresentacaoInfo && (
+                              <div className="mb-2 px-2 py-1.5 bg-purple-50 border border-purple-100 rounded-none text-[9px] text-purple-700 font-bold flex items-center gap-1">
+                                <Calendar className="w-3 h-3 shrink-0" />
+                                {apresentacaoInfo}
+                              </div>
+                            )}
 
                             <div className="space-y-1.5 text-[10px] text-slate-500">
                               <div className="flex justify-between items-center">
@@ -551,11 +579,7 @@ export default function Projectos({ empresas, profiles, servicosConfig, onProjec
                               </div>
                             </div>
 
-                            <div className="mt-3 pt-3 border-t border-slate-50 flex justify-between items-center">
-                              <span className="text-xs font-black text-slate-800 flex items-center gap-1">
-                                <DollarSign className="w-3 h-3 text-emerald-500" />
-                                {formatKwanza(proj.valor)}
-                              </span>
+                            <div className="mt-3 pt-3 border-t border-slate-50 flex justify-end items-center">
                               <button
                                 onClick={() => { setEditingProj(proj); setEditPrazo(proj.prazo); setEditObs(proj.observacoes || ''); }}
                                 className="p-1 text-slate-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition"
@@ -615,18 +639,22 @@ export default function Projectos({ empresas, profiles, servicosConfig, onProjec
                     {paginatedProjectos.map(proj => {
                       const emp = empresas.find(e => e.id === proj.empresa_id);
                       const isDropdownOpen = openDropdownId === proj.id;
+                      const apresentacaoInfo = proj.estado === 'Apresentação Agendada' && proj.observacoes
+                        ? (() => {
+                            const match = proj.observacoes.match(/\[APRESENTAÇÃO AGENDADA\] (.*?)(?=\n|$)/);
+                            return match ? match[1] : null;
+                          })()
+                        : null;
 
                       return (
                         <tr key={proj.id} className="hover:bg-slate-50/50 transition">
                           <td className="px-5 py-3">
                             <p className="font-extrabold text-slate-900 truncate max-w-[150px]">{emp?.nome_empresa || 'Desconhecida'}</p>
-                            <p className="text-[9px] text-slate-400 font-mono mt-0.5">ID: {proj.id.split('-')[1] || proj.id}</p>
                           </td>
                           <td className="px-5 py-3">
                             <span className="bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded-none text-[10px] uppercase">
                               {proj.servico}
                             </span>
-                            <p className="font-black text-slate-800 text-[11px] mt-1">{formatKwanza(proj.valor)}</p>
                           </td>
                           <td className="px-5 py-3 font-semibold">{proj.responsavel}</td>
                           <td className="px-5 py-3">
@@ -636,9 +664,16 @@ export default function Projectos({ empresas, profiles, servicosConfig, onProjec
                             </div>
                           </td>
                           <td className="px-5 py-3 text-center">
-                            <span className={`px-2 py-1 rounded-none text-[9px] uppercase font-black tracking-wider border ${estadoBadge(proj.estado)}`}>
-                              {proj.estado}
-                            </span>
+                            <div className="inline-flex flex-col items-center gap-1">
+                              <span className={`px-2 py-1 rounded-none text-[9px] uppercase font-black tracking-wider border ${estadoBadge(proj.estado)}`}>
+                                {proj.estado}
+                              </span>
+                              {apresentacaoInfo && (
+                                <span className="text-[9px] text-purple-600 font-bold flex items-center gap-0.5 text-center">
+                                  <Calendar className="w-2.5 h-2.5 shrink-0" /> {apresentacaoInfo}
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-5 py-3 text-right">
                             <div className="relative inline-block text-left">

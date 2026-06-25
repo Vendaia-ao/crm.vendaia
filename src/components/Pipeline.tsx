@@ -29,7 +29,7 @@ interface PipelineProps {
   contactos: Contacto[];
   currentUser: string;
   onAddOportunidade: (oportunidade: Omit<Oportunidade, 'id' | 'data_entrada'>) => void;
-  onUpdateOportunidadeEtapa: (id: string, etapa: PipelineEtapa, motivoPerda?: MotivoPerda, perdaDetalhe?: string, notaExtra?: string) => void;
+  onUpdateOportunidadeEtapa: (id: string, etapa: PipelineEtapa, motivoPerda?: MotivoPerda, perdaDetalhe?: string, notaExtra?: string, valorAcordado?: number) => void;
   onDeleteOportunidade: (id: string) => void;
   onAddEmpresa: (empresa: Omit<Empresa, 'id' | 'data_cadastro'>, contacts?: Omit<Contacto, 'id' | 'empresa_id'>[]) => void;
   profiles: UserType[];
@@ -160,6 +160,11 @@ export default function Pipeline({
   const [reuniaoData, setReuniaoData] = useState('');
   const [reuniaoHora, setReuniaoHora] = useState('');
 
+  // Form fields for Fechado
+  const [fechadoLeadId, setFechadoLeadId] = useState<string | null>(null);
+  const [showFechadoModal, setShowFechadoModal] = useState(false);
+  const [fechadoValorAcordado, setFechadoValorAcordado] = useState<number>(0);
+
   // Drag State
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
 
@@ -264,6 +269,12 @@ export default function Pipeline({
       setReuniaoData('');
       setReuniaoHora('');
       setShowReuniaoModal(true);
+    } else if (targetEtapa === 'Fechado') {
+      const opt = oportunidades.find(o => o.id === id);
+      setFechadoLeadId(id);
+      setPendingEtapaChange(targetEtapa);
+      setFechadoValorAcordado(opt?.valor_estimado || 0);
+      setShowFechadoModal(true);
     } else {
       onUpdateOportunidadeEtapa(id, targetEtapa);
     }
@@ -388,6 +399,24 @@ export default function Pipeline({
 
     setShowReuniaoModal(false);
     setReuniaoLeadId(null);
+    setPendingEtapaChange(null);
+  };
+
+  const handleFechadoSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fechadoLeadId) return;
+
+    onUpdateOportunidadeEtapa(
+      fechadoLeadId,
+      'Fechado',
+      undefined,
+      undefined,
+      undefined,
+      fechadoValorAcordado
+    );
+
+    setShowFechadoModal(false);
+    setFechadoLeadId(null);
     setPendingEtapaChange(null);
   };
 
@@ -1448,6 +1477,51 @@ export default function Pipeline({
                   className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-none text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
                 >
                   Salvar Empresa
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* FECHADO MODAL */}
+      {showFechadoModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-none shadow-xl w-full max-w-sm overflow-hidden text-left border border-slate-200">
+            <div className="px-5 py-4 bg-emerald-600 text-white flex justify-between items-center border-b border-emerald-700">
+              <h3 className="font-bold text-sm">Negócio Fechado</h3>
+              <button onClick={() => setShowFechadoModal(false)} className="text-emerald-200 hover:text-white transition">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleFechadoSubmit} className="p-5 space-y-4">
+              <p className="text-xs text-slate-500 font-medium">
+                Parabéns por fechar este negócio! Por favor, confirme o valor acordado para fins de relatório.
+              </p>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Valor Acordado (AOA)</label>
+                <input
+                  type="number"
+                  required
+                  min={0}
+                  value={fechadoValorAcordado}
+                  onChange={e => setFechadoValorAcordado(Number(e.target.value))}
+                  className="w-full border border-slate-300 px-3 py-2 text-sm focus:ring-1 focus:ring-emerald-500 rounded-none outline-none"
+                />
+              </div>
+              <div className="pt-2 flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowFechadoModal(false)}
+                  className="px-4 py-2 border border-slate-300 text-slate-600 rounded-none hover:bg-slate-50 text-sm font-semibold transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-emerald-600 text-white rounded-none hover:bg-emerald-700 text-sm font-bold transition"
+                >
+                  Confirmar
                 </button>
               </div>
             </form>
