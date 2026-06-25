@@ -166,7 +166,6 @@ export default function Auth({ onLogin }: AuthProps) {
               disabled={isLoading}
               className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white font-bold text-sm rounded-none transition shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Shield className="w-4 h-4 text-orange-500" />
               {isLoading ? 'A autenticar...' : 'Entrar no CRM'}
             </button>
           </form>
@@ -180,11 +179,7 @@ export default function Auth({ onLogin }: AuthProps) {
 
         {/* Footer */}
         <div className="bg-slate-50 px-8 py-4 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400">
-          <span>VENDAIA Angola © 2026</span>
-          <span className="flex items-center gap-1 font-bold">
-            <Sparkles className="w-3 h-3 text-orange-400" />
-            Empower Sales
-          </span>
+          <span>VENDAIA Solutions © 2026</span>
         </div>
 
       </div>
