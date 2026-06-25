@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  User, 
-  Empresa, 
-  Contacto, 
-  Oportunidade, 
-  HistoricoItem, 
+import {
+  User,
+  Empresa,
+  Contacto,
+  Oportunidade,
+  HistoricoItem,
   PipelineEtapa,
   MotivoPerda,
   Cliente,
@@ -21,13 +21,13 @@ import Pipeline from './components/Pipeline';
 import Projectos from './components/Projectos';
 import Clientes from './components/Clientes';
 import Utilizadores from './components/Utilizadores';
-import { 
-  Building2, 
-  LayoutDashboard, 
-  GitBranch, 
-  FolderLock, 
-  LogOut, 
-  ShieldAlert, 
+import {
+  Building2,
+  LayoutDashboard,
+  GitBranch,
+  FolderLock,
+  LogOut,
+  ShieldAlert,
   Activity,
   Globe,
   Sparkles,
@@ -53,7 +53,7 @@ export default function App() {
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [contactos, setContactos] = useState<Contacto[]>([]);
   const [oportunidades, setOportunidades] = useState<Oportunidade[]>([]);
-  
+
   // projectos state is now managed inside <Projectos> via Supabase real-time.
   // We keep a lightweight reference here only for Pipeline automation (auto-create on deal close).
   const [projectos, setProjectos] = useState<{ id: string; oportunidade_id: string }[]>([]);
@@ -154,7 +154,7 @@ export default function App() {
           const cleanHistorico = histRes.data || [];
           const cleanProfiles = profRes.data || [];
           const cleanClientes = cliRes.data || [];
-          
+
           setEmpresas(cleanEmpresas);
           setContactos(cleanContactos);
           setOportunidades(cleanOportunidades);
@@ -167,7 +167,7 @@ export default function App() {
 
           if (cleanProfiles.length > 0) {
             setProfiles(cleanProfiles);
-            
+
             // If current user's profile is updated in DB, sync local currentUser!
             if (currentUser) {
               const updatedMe = cleanProfiles.find((p: User) => p.email.toLowerCase() === currentUser.email.toLowerCase());
@@ -295,12 +295,12 @@ export default function App() {
       if (dbStatus.connected && dbStatus.tablesExist && supabase) {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
         const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-        
+
         if (supabaseUrl && supabaseAnonKey) {
           const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
             auth: { persistSession: false }
           });
-          
+
           // Registar no Supabase Auth com a senha padrão vendaia@2026
           const { data: authData, error: authError } = await tempClient.auth.signUp({
             email: newUser.email.trim().toLowerCase(),
@@ -323,7 +323,7 @@ export default function App() {
             finalId = authData.user.id;
           }
         }
-        
+
         // Criar o registo correspondente na tabela profiles
         const { error: profileError } = await supabase.from("profiles").insert({
           id: finalId,
@@ -366,7 +366,7 @@ export default function App() {
       }
 
       setProfiles(profiles.map(p => p.id === updatedUser.id ? updatedUser : p));
-      
+
       // Se for o próprio utilizador logado a atualizar, sincronizar localmente
       if (currentUser && currentUser.id === updatedUser.id) {
         setCurrentUser(updatedUser);
@@ -408,7 +408,7 @@ export default function App() {
     };
     const updated = [fresh, ...empresas];
     setEmpresas(updated);
-    
+
     // Auto historic logging
     const log: HistoricoItem = {
       id: `hist-${Date.now()}`,
@@ -418,7 +418,7 @@ export default function App() {
       tipo: 'cadastro',
       descricao: `Adicionou nova empresa '${fresh.nome_empresa}' no diretório.`
     };
-    
+
     // Add contacts if provided
     if (associatedCon && associatedCon.length > 0) {
       const freshContacts: Contacto[] = associatedCon.map((c, idx) => ({
@@ -494,9 +494,9 @@ export default function App() {
   };
 
   const handleUpdateOportunidadeEtapa = (
-    id: string, 
-    novaEtapa: PipelineEtapa, 
-    motivoPerda?: MotivoPerda, 
+    id: string,
+    novaEtapa: PipelineEtapa,
+    motivoPerda?: MotivoPerda,
     perdaDetalhe?: string,
     notaExtra?: string,
     valorAcordado?: number
@@ -526,7 +526,7 @@ export default function App() {
       autor: currentUser?.nome || 'Sistema',
       data: new Date().toISOString(),
       tipo: 'etapa_mudança',
-      descricao: `Alterou etapa de '${previousLead.etapa}' para '${novaEtapa}'` + 
+      descricao: `Alterou etapa de '${previousLead.etapa}' para '${novaEtapa}'` +
         (novaEtapa === 'Perdido' && motivoPerda ? ` (Motivo de Perda: ${motivoPerda})` : '') +
         (notaExtra ? ` - ${notaExtra}` : '')
     };
@@ -596,7 +596,7 @@ export default function App() {
     try {
       const { data } = await supabase.from('projectos').select('id, oportunidade_id');
       if (data) setProjectos(data);
-    } catch (_) {}
+    } catch (_) { }
   }, []);
 
   // Core Mutation triggers - Cliente (kept for backward compat but Clientes module is now a placeholder)
@@ -720,34 +720,34 @@ export default function App() {
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-slate-50 text-slate-900 font-sans flex flex-col md:flex-row">
-      
+
       {/* DESKTOP SIDEBAR - VISIBLE ON MD AND UP */}
       <aside className={`hidden md:flex ${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-white border-r border-slate-200 flex-col h-screen sticky top-0 shrink-0 transition-all duration-300`}>
         {/* Branding Area with Hamburger menu button */}
         <div className="p-4 border-b border-slate-200 relative flex items-center justify-between">
           {!isSidebarCollapsed ? (
             <div className="flex items-center gap-2">
-              <img 
-                src="/assets/logo_horizontal.png" 
-                className="h-7 object-contain max-w-[130px]" 
-                alt="VENDAIA SOLUTIONS" 
-                onError={(e) => { 
-                  (e.currentTarget as HTMLImageElement).style.opacity = '0'; 
-                }} 
+              <img
+                src="/assets/logo_horizontal.png"
+                className="h-7 object-contain max-w-[130px]"
+                alt="VENDAIA SOLUTIONS"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.opacity = '0';
+                }}
               />
             </div>
           ) : (
-            <img 
-              src="/assets/ícone.png" 
-              className="h-7 w-7 object-contain mx-auto" 
-              alt="V" 
-              onError={(e) => { 
-                (e.currentTarget as HTMLImageElement).style.display = 'none'; 
-              }} 
+            <img
+              src="/assets/ícone.png"
+              className="h-7 w-7 object-contain mx-auto"
+              alt="V"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = 'none';
+              }}
             />
           )}
 
-          <button 
+          <button
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             className={`p-1.5 rounded-none hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer ${isSidebarCollapsed ? 'mx-auto' : ''}`}
             title={isSidebarCollapsed ? "Expandir Sidebar" : "Recolher Sidebar"}
@@ -763,15 +763,14 @@ export default function App() {
               Menu Principal
             </div>
           )}
-          
+
           {hasPermission('dashboard') && (
             <button
               onClick={() => setActiveModule('dashboard')}
-              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${
-                activeModule === 'dashboard'
+              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${activeModule === 'dashboard'
                   ? 'bg-blue-50/85 text-blue-700 border-blue-700'
                   : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
-              }`}
+                }`}
               title="Dashboard"
             >
               <LayoutDashboard className="w-4 h-4 shrink-0 text-slate-400" />
@@ -782,11 +781,10 @@ export default function App() {
           {hasPermission('empresas') && (
             <button
               onClick={() => setActiveModule('empresas')}
-              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${
-                activeModule === 'empresas'
+              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${activeModule === 'empresas'
                   ? 'bg-blue-50/85 text-blue-700 border-blue-700'
                   : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
-              }`}
+                }`}
               title="Empresas B2B"
             >
               <Building2 className="w-4 h-4 shrink-0 text-slate-400" />
@@ -797,11 +795,10 @@ export default function App() {
           {hasPermission('pipeline') && (
             <button
               onClick={() => setActiveModule('pipeline')}
-              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${
-                activeModule === 'pipeline'
+              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${activeModule === 'pipeline'
                   ? 'bg-blue-50/85 text-blue-700 border-blue-700'
                   : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
-              }`}
+                }`}
               title="Pipeline Comercial"
             >
               <GitBranch className="w-4 h-4 shrink-0 text-slate-400" />
@@ -813,11 +810,10 @@ export default function App() {
             <>
               <button
                 onClick={() => setActiveModule('clientes')}
-                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${
-                  activeModule === 'clientes'
+                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${activeModule === 'clientes'
                     ? 'bg-blue-50/85 text-blue-700 border-blue-700'
                     : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
-                }`}
+                  }`}
                 title="Clientes Ativos"
               >
                 <Users className="w-4 h-4 shrink-0 text-slate-400" />
@@ -825,11 +821,10 @@ export default function App() {
               </button>
               <button
                 onClick={() => setActiveModule('projectos')}
-                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${
-                  activeModule === 'projectos'
+                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${activeModule === 'projectos'
                     ? 'bg-blue-50/85 text-blue-700 border-blue-700'
                     : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
-                }`}
+                  }`}
                 title="Gestão de Projetos"
               >
                 <FolderLock className="w-4 h-4 shrink-0 text-slate-400" />
@@ -841,11 +836,10 @@ export default function App() {
           {hasPermission('utilizadores') && (
             <button
               onClick={() => setActiveModule('utilizadores')}
-              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${
-                activeModule === 'utilizadores'
+              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${activeModule === 'utilizadores'
                   ? 'bg-blue-50/85 text-blue-700 border-blue-700'
                   : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
-              }`}
+                }`}
               title="Utilizadores e Acessos"
             >
               <Shield className="w-4 h-4 shrink-0 text-slate-400" />
@@ -914,13 +908,13 @@ export default function App() {
       <div className="md:hidden flex flex-col bg-slate-900 text-white z-40 shadow-md shrink-0">
         <div className="flex items-center justify-between px-4 h-16 border-b border-slate-800">
           <div className="flex items-center gap-2 py-1">
-            <img 
-              src="/assets/logo%20branco.png" 
-              className="h-8 object-contain max-w-[125px]" 
-              alt="VENDAIA SOLUTIONS" 
-              onError={(e) => { 
-                (e.currentTarget as HTMLImageElement).style.opacity = '0'; 
-              }} 
+            <img
+              src="/assets/logo%20branco.png"
+              className="h-8 object-contain max-w-[125px]"
+              alt="VENDAIA SOLUTIONS"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.opacity = '0';
+              }}
             />
           </div>
 
@@ -947,9 +941,8 @@ export default function App() {
           {hasPermission('dashboard') && (
             <button
               onClick={() => setActiveModule('dashboard')}
-              className={`px-3 py-1 rounded-none text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${
-                activeModule === 'dashboard' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
-              }`}
+              className={`px-3 py-1 rounded-none text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${activeModule === 'dashboard' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
+                }`}
             >
               Dashboard
             </button>
@@ -957,9 +950,8 @@ export default function App() {
           {hasPermission('empresas') && (
             <button
               onClick={() => setActiveModule('empresas')}
-              className={`px-3 py-1 rounded-none text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${
-                activeModule === 'empresas' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
-              }`}
+              className={`px-3 py-1 rounded-none text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${activeModule === 'empresas' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
+                }`}
             >
               Empresas
             </button>
@@ -967,9 +959,8 @@ export default function App() {
           {hasPermission('pipeline') && (
             <button
               onClick={() => setActiveModule('pipeline')}
-              className={`px-3 py-1 rounded-none text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${
-                activeModule === 'pipeline' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
-              }`}
+              className={`px-3 py-1 rounded-none text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${activeModule === 'pipeline' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
+                }`}
             >
               Pipeline
             </button>
@@ -978,17 +969,15 @@ export default function App() {
             <>
               <button
                 onClick={() => setActiveModule('clientes')}
-                className={`px-3 py-1 rounded-none text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${
-                  activeModule === 'clientes' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
-                }`}
+                className={`px-3 py-1 rounded-none text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${activeModule === 'clientes' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
+                  }`}
               >
                 Clientes
               </button>
               <button
                 onClick={() => setActiveModule('projectos')}
-                className={`px-3 py-1 rounded-none text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${
-                  activeModule === 'projectos' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
-                }`}
+                className={`px-3 py-1 rounded-none text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${activeModule === 'projectos' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
+                  }`}
               >
                 Projectos
               </button>
@@ -997,9 +986,8 @@ export default function App() {
           {hasPermission('utilizadores') && (
             <button
               onClick={() => setActiveModule('utilizadores')}
-              className={`px-3 py-1 rounded-none text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${
-                activeModule === 'utilizadores' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
-              }`}
+              className={`px-3 py-1 rounded-none text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${activeModule === 'utilizadores' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
+                }`}
             >
               Utilizadores
             </button>
@@ -1009,18 +997,18 @@ export default function App() {
 
       {/* MAIN CONTAINER CONTENT SECTION */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        
+
         {/* SUB-HEADER USER STATE LINE */}
         <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-8 shrink-0">
           <div className="flex items-center gap-3">
             <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight capitalize select-none">
-              {activeModule === 'projectos' ? 'Gestão de Projectos' 
-                : activeModule === 'pipeline' ? 'Pipeline Comercial' 
-                : activeModule === 'utilizadores' ? 'Utilizadores & Acessos'
-                : activeModule === 'clientes' ? 'Clientes Ativos'
-                : activeModule === 'empresas' ? 'Base de Empresas'
-                : activeModule === 'dashboard' ? 'Dashboard'
-                : activeModule}
+              {activeModule === 'projectos' ? 'Gestão de Projectos'
+                : activeModule === 'pipeline' ? 'Pipeline Comercial'
+                  : activeModule === 'utilizadores' ? 'Utilizadores & Acessos'
+                    : activeModule === 'clientes' ? 'Clientes Ativos'
+                      : activeModule === 'empresas' ? 'Base de Empresas'
+                        : activeModule === 'dashboard' ? 'Dashboard'
+                          : activeModule}
             </h1>
             <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 transition text-[11px] text-slate-600 font-semibold rounded-none border border-slate-200">
               <Activity className="w-3 h-3 text-emerald-500 animate-pulse" />
@@ -1099,7 +1087,7 @@ export default function App() {
         <footer className="bg-white text-slate-500 border-t border-slate-200 py-4 px-8 text-xs shrink-0">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5">
             <p className="flex items-center gap-1.5 text-[11px]">
-              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+
               <span>Vendaia CRM v1.0</span>
             </p>
             <p className="text-[10px] text-slate-400 font-mono">
@@ -1123,7 +1111,7 @@ export default function App() {
                 </h3>
                 <p className="text-xs text-slate-500 mt-1">Crie a estrutura de dados necessária para persistência segura.</p>
               </div>
-              <button 
+              <button
                 onClick={() => setShowSqlModal(false)}
                 className="text-slate-400 hover:text-slate-700 text-lg font-black cursor-pointer p-1"
               >
@@ -1141,7 +1129,7 @@ export default function App() {
               <div className="space-y-1">
                 <div className="flex justify-between items-center bg-slate-100 px-3 py-1.5 rounded-none border-t border-x border-slate-200 font-mono text-[10px] font-bold text-slate-700">
                   <span>Vendaia CRM Schema (v1.0)</span>
-                  <button 
+                  <button
                     onClick={() => {
                       navigator.clipboard.writeText(`-- =================================================================
 -- SCRIPT DE CRIAÇÃO DO BANCO DE DADOS - VENDAIA CRM (SUPABASE)
@@ -1270,7 +1258,7 @@ CREATE POLICY "Acesso total Historico" ON historico
                   </button>
                 </div>
                 <pre className="bg-slate-900 text-slate-200 p-3.5 rounded-none overflow-x-auto text-[10px] font-mono leading-relaxed max-h-[180px] border border-slate-800">
-{`-- 1. Empresas Table (Com RLS habilitado)
+                  {`-- 1. Empresas Table (Com RLS habilitado)
 CREATE TABLE IF NOT EXISTS empresas (
   id TEXT PRIMARY KEY,
   nome_empresa TEXT NOT NULL,
@@ -1438,7 +1426,7 @@ CREATE POLICY "Acesso total Historico" ON historico FOR ALL TO anon, authenticat
                 </div>
               </div>
 
-              </div>
+            </div>
 
             <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
               <button
