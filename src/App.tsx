@@ -1,13 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   User, 
   Empresa, 
   Contacto, 
   Oportunidade, 
-  Projecto, 
   HistoricoItem, 
-  PipelineEtapa, 
-  EstadoProjecto,
+  PipelineEtapa,
   MotivoPerda,
   Cliente,
   EstadoCliente,
@@ -16,8 +14,7 @@ import {
 import { 
   INITIAL_EMPRESAS, 
   INITIAL_CONTACTOS, 
-  INITIAL_OPORTUNIDADES, 
-  INITIAL_PROJECTOS, 
+  INITIAL_OPORTUNIDADES,
   INITIAL_HISTORICO
 } from './mockData';
 import { supabase } from './lib/supabaseClient';
@@ -70,10 +67,9 @@ export default function App() {
     const saved = localStorage.getItem('vendaia_oportunidades');
     return saved ? JSON.parse(saved) : INITIAL_OPORTUNIDADES;
   });
-  const [projectos, setProjectos] = useState<Projecto[]>(() => {
-    const saved = localStorage.getItem('vendaia_projectos');
-    return saved ? JSON.parse(saved) : INITIAL_PROJECTOS;
-  });
+  // projectos state is now managed inside <Projectos> via Supabase real-time.
+  // We keep a lightweight reference here only for Pipeline automation (auto-create on deal close).
+  const [projectos, setProjectos] = useState<{ id: string; oportunidade_id: string; cliente_id?: string }[]>([]);
   const [historico, setHistorico] = useState<HistoricoItem[]>(() => {
     const saved = localStorage.getItem('vendaia_historico');
     return saved ? JSON.parse(saved) : INITIAL_HISTORICO;
@@ -156,12 +152,12 @@ export default function App() {
         setDbStatus(status);
 
         if (status.connected && status.tablesExist) {
-          // Perform concurrent requests to all CRM database tables including profiles
+          // Perform concurrent requests to CRM database tables (projectos excluded – managed by <Projectos> component)
           const [empRes, conRes, optRes, projRes, histRes, profRes] = await Promise.all([
             supabase.from("empresas").select("*").order("data_cadastro", { ascending: false }),
             supabase.from("contactos").select("*"),
             supabase.from("oportunidades").select("*").order("data_entrada", { ascending: false }),
-            supabase.from("projectos").select("*").order("data_inicio", { ascending: false }),
+            supabase.from("projectos").select("id, oportunidade_id, cliente_id"),
             supabase.from("historico").select("*").order("data", { ascending: false }),
             supabase.from("profiles").select("*").order("data_cadastro", { ascending: false }),
           ]);
@@ -182,7 +178,7 @@ export default function App() {
           const cleanEmpresas = empRes.data || [];
           const cleanContactos = conRes.data || [];
           const cleanOportunidades = optRes.data || [];
-          const cleanProjectos = projRes.data || [];
+          const cleanProjectosRef = projRes.data || [];
           const cleanHistorico = histRes.data || [];
           const cleanProfiles = profRes.data || [];
 
@@ -195,8 +191,8 @@ export default function App() {
           setOportunidades(cleanOportunidades);
           localStorage.setItem('vendaia_oportunidades', JSON.stringify(cleanOportunidades));
 
-          setProjectos(cleanProjectos);
-          localStorage.setItem('vendaia_projectos', JSON.stringify(cleanProjectos));
+          // Lightweight reference for pipeline automation
+          setProjectos(cleanProjectosRef);
 
           setHistorico(cleanHistorico);
           localStorage.setItem('vendaia_historico', JSON.stringify(cleanHistorico));
@@ -215,77 +211,9 @@ export default function App() {
             }
           }
 
-          // --- MIGRAÇÃO RETROACTIVA ---
-          // Verifica se existem oportunidades 'Fechado' que não tenham Cliente e Projecto associados.
-          let migracoes = 0;
-          let tempClientes = [...(JSON.parse(localStorage.getItem('vendaia_clientes') || '[]'))];
-          const tempProjectos = [...cleanProjectos];
-          const tempHistorico = [...cleanHistorico];
-
-          cleanOportunidades.forEach(opt => {
-            if (opt.etapa === 'Fechado') {
-              const clienteExiste = tempClientes.some(c => c.projeto_associado !== undefined && 
-                tempProjectos.some(p => p.oportunidade_id === opt.id && p.id === c.projeto_associado));
-              const projectoExiste = tempProjectos.some(p => p.oportunidade_id === opt.id);
-
-              if (!clienteExiste && !projectoExiste) {
-                const d = new Date(opt.data_entrada);
-                const start = d.toISOString();
-                d.setDate(d.getDate() + 30);
-                const due = d.toISOString().split('T')[0];
-
-                const projId = 'proj-mig-' + opt.id;
-                const clienteId = 'cli-mig-' + opt.id;
-
-                const emp = cleanEmpresas.find(e => e.id === opt.empresa_id);
-                const con = cleanContactos.find(c => c.empresa_id === opt.empresa_id);
-
-                const newCliente: Cliente = {
-                  id: clienteId,
-                  nome_empresa: emp ? emp.nome_empresa : 'Empresa Associada',
-                  contacto_principal: con ? con.nome : '',
-                  telefone: con ? con.telefone : (emp ? emp.telefone_principal : ''),
-                  email: con ? con.email : '',
-                  servico_contratado: opt.servico,
-                  valor_negocio: opt.valor_estimado,
-                  data_fecho: opt.data_entrada,
-                  projeto_associado: projId,
-                  estado: 'Cliente Ativo',
-                  proxima_acao: ''
-                };
-                tempClientes = [newCliente, ...tempClientes];
-
-                const newProj: Projecto = {
-                  id: projId,
-                  empresa_id: opt.empresa_id,
-                  cliente_id: clienteId,
-                  servico: opt.servico,
-                  valor: opt.valor_estimado,
-                  data_inicio: start,
-                  prazo: due,
-                  responsavel: opt.responsavel,
-                  estado: 'Em Produção',
-                  observacoes: 'Gerado automaticamente por migração retroactiva.',
-                  oportunidade_id: opt.id
-                };
-                tempProjectos.push(newProj);
-
-                migracoes++;
-              }
-            }
-          });
-
-          if (migracoes > 0) {
-            setClientes(tempClientes);
-            setProjectos(tempProjectos);
-            setHistorico(tempHistorico);
-            localStorage.setItem('vendaia_clientes', JSON.stringify(tempClientes));
-            localStorage.setItem('vendaia_projectos', JSON.stringify(tempProjectos));
-            localStorage.setItem('vendaia_historico', JSON.stringify(tempHistorico));
-            console.log(`Migração retroactiva: ${migracoes} leads fechados antigos processados.`);
-          }
 
           setLastSynced(new Date().toLocaleTimeString('pt-AO'));
+
         }
       } catch (err: any) {
         console.error("Erro ao comunicar com o Supabase:", err);
@@ -314,10 +242,6 @@ export default function App() {
   }, [oportunidades]);
 
   useEffect(() => {
-    localStorage.setItem('vendaia_projectos', JSON.stringify(projectos));
-  }, [projectos]);
-
-  useEffect(() => {
     localStorage.setItem('vendaia_historico', JSON.stringify(historico));
   }, [historico]);
 
@@ -334,6 +258,7 @@ export default function App() {
   }, [servicosConfig]);
 
   // Silent debounced background sync to Supabase when active states change
+  // NOTE: projectos are managed by <Projectos> component directly via Supabase – not synced here
   useEffect(() => {
     if (dbStatus.connected && dbStatus.tablesExist && supabase) {
       const delayDebounce = setTimeout(async () => {
@@ -353,17 +278,12 @@ export default function App() {
             const { error } = await supabase.from("contactos").upsert(contactos);
             if (error) throw new Error(`[Contactos] ${error.message}`);
           }
-          // Sync Stage D: Projectos
-          if (projectos && projectos.length > 0) {
-            const { error } = await supabase.from("projectos").upsert(projectos);
-            if (error) throw new Error(`[Projectos] ${error.message}`);
-          }
-          // Sync Stage E: Historico
+          // Sync Stage D: Historico
           if (historico && historico.length > 0) {
             const { error } = await supabase.from("historico").upsert(historico);
             if (error) throw new Error(`[Historico] ${error.message}`);
           }
-          // Sync Stage F: Profiles
+          // Sync Stage E: Profiles
           if (profiles && profiles.length > 0) {
             const { error } = await supabase.from("profiles").upsert(profiles);
             if (error) throw new Error(`[Profiles] ${error.message}`);
@@ -376,7 +296,7 @@ export default function App() {
       }, 3000);
       return () => clearTimeout(delayDebounce);
     }
-  }, [empresas, contactos, oportunidades, projectos, historico, profiles, dbStatus.connected, dbStatus.tablesExist]);
+  }, [empresas, contactos, oportunidades, historico, profiles, dbStatus.connected, dbStatus.tablesExist]);
 
   // Manual Triggered Sync
   const triggerManualSync = async () => {
@@ -398,10 +318,7 @@ export default function App() {
         const { error } = await supabase.from("contactos").upsert(contactos);
         if (error) throw error;
       }
-      if (projectos && projectos.length > 0) {
-        const { error } = await supabase.from("projectos").upsert(projectos);
-        if (error) throw error;
-      }
+      // Note: projectos are managed directly by <Projectos> component – not synced here
       if (historico && historico.length > 0) {
         const { error } = await supabase.from("historico").upsert(historico);
         if (error) throw error;
@@ -673,61 +590,47 @@ export default function App() {
     };
     setHistorico([log, ...historico]);
 
-    // Automacao: Se 'Fechado', criar Cliente + Projecto automaticamente (sem duplicados)
+    // Automacao: Se 'Fechado', criar Projecto automaticamente no Supabase (sem duplicados)
     if (novaEtapa === 'Fechado') {
-      // Verificar se ja existe um cliente associado a esta oportunidade
-      const clienteJaExiste = clientes.some(c => c.projeto_associado !== undefined && 
-        projectos.some(p => p.oportunidade_id === id && p.id === c.projeto_associado));
       const projectoJaExiste = projectos.some(p => p.oportunidade_id === id);
 
-      if (!clienteJaExiste && !projectoJaExiste) {
+      if (!projectoJaExiste) {
         const d = new Date();
         const start = d.toISOString();
         d.setDate(d.getDate() + 30);
         const due = d.toISOString().split('T')[0];
 
         const projId = 'proj-' + Date.now();
-        const clienteId = 'cli-' + Date.now();
 
         // Dados da empresa e contacto
         const empAssociada = empresas.find(e => e.id === previousLead.empresa_id);
-        const contactoAssociado = contactos.find(c => c.empresa_id === previousLead.empresa_id);
 
-        // 1. Criar registo de Cliente
-        const estadoInicial: EstadoCliente = 'Aguardando Apresentação';
-        const acaoInicial: ProximaAcaoComercial = 'Agendar Reunião';
-
-        const newCliente: Cliente = {
-          id: clienteId,
-          nome_empresa: empAssociada ? empAssociada.nome_empresa : 'Empresa Associada',
-          contacto_principal: contactoAssociado ? contactoAssociado.nome : '',
-          telefone: contactoAssociado ? contactoAssociado.telefone : (empAssociada ? empAssociada.telefone_principal : ''),
-          email: contactoAssociado ? contactoAssociado.email : '',
-          servico_contratado: previousLead.servico,
-          valor_negocio: previousLead.valor_estimado,
-          data_fecho: new Date().toISOString(),
-          projeto_associado: projId,
-          estado: estadoInicial,
-          proxima_acao: acaoInicial
-        };
-        setClientes(prev => [newCliente, ...prev]);
-
-        // 2. Criar registo de Projecto
-        const estadoProj: EstadoProjecto = 'Em Produção';
-        const newProj: Projecto = {
+        const newProj = {
           id: projId,
           empresa_id: previousLead.empresa_id,
-          cliente_id: clienteId,
           servico: previousLead.servico,
           valor: previousLead.valor_estimado,
           data_inicio: start,
           prazo: due,
           responsavel: previousLead.responsavel,
-          estado: estadoProj,
-          observacoes: previousLead.observacoes || 'Faturado. Transmitido automaticamente para a equipa tecnica.',
+          estado: 'Em Produção',
+          observacoes: previousLead.observacoes || 'Faturado. Transmitido automaticamente para a equipa técnica.',
           oportunidade_id: id
         };
-        setProjectos(prev => [...prev, newProj]);
+
+        // Insert directly into Supabase (Projectos component will pick it up via real-time subscription)
+        if (supabase && dbStatus.connected && dbStatus.tablesExist) {
+          supabase.from('projectos').insert(newProj).then(({ error }) => {
+            if (error) console.warn('Erro ao criar projecto automático:', error.message);
+            else {
+              // Update lightweight reference
+              setProjectos(prev => [...prev, { id: projId, oportunidade_id: id }]);
+            }
+          });
+        } else {
+          // Fallback: just update local reference
+          setProjectos(prev => [...prev, { id: projId, oportunidade_id: id }]);
+        }
 
         // 3. Log de historico
         const nomeEmpresa = empAssociada ? empAssociada.nome_empresa : 'Empresa';
@@ -737,76 +640,24 @@ export default function App() {
           autor: 'Sistema Vendaia',
           data: new Date().toISOString(),
           tipo: 'cliente',
-          descricao: 'Negocio fechado! Cliente "' + nomeEmpresa + '" registado automaticamente no modulo Clientes e projeto de "' + previousLead.servico + '" criado no modulo Projectos.'
+          descricao: 'Negócio fechado! Projecto de "' + previousLead.servico + '" para "' + nomeEmpresa + '" criado automaticamente em Gestão de Projectos.'
         };
         setHistorico(prev => [projLog, log, ...prev]);
       }
     }
   };
 
-  // Core Mutation triggers - Projecto
-  const handleUpdateProjectoStatus = (id: string, novoEstado: EstadoProjecto) => {
-    const prevProj = projectos.find(p => p.id === id);
-    if (!prevProj) return;
+  // Projectos mutations are now handled inside <Projectos> component via Supabase.
+  // This callback refreshes the lightweight reference used by Pipeline automation.
+  const handleProjectosChanged = useCallback(async () => {
+    if (!supabase) return;
+    try {
+      const { data } = await supabase.from('projectos').select('id, oportunidade_id, cliente_id');
+      if (data) setProjectos(data);
+    } catch (_) {}
+  }, []);
 
-    setProjectos(projectos.map(p => p.id === id ? { ...p, estado: novoEstado } : p));
-
-    // Se projeto transita para 'Pronto para Entrega', notificar cliente associado
-    if (novoEstado === 'Pronto para Entrega' && prevProj.cliente_id) {
-      const estadoEntrega: EstadoCliente = 'Aguardando Apresentação';
-      const acaoEntrega: ProximaAcaoComercial = 'Apresentar Projeto';
-      setClientes(prev => prev.map(c =>
-        c.id === prevProj.cliente_id
-          ? { ...c, estado: estadoEntrega, proxima_acao: acaoEntrega }
-          : c
-      ));
-    }
-
-    // Log the change
-    const log: HistoricoItem = {
-      id: `hist-${Date.now()}`,
-      empresa_id: prevProj.empresa_id,
-      autor: currentUser?.nome || 'Sistema',
-      data: new Date().toISOString(),
-      tipo: 'projeto',
-      descricao: `Actualizou estado do projecto de '${prevProj.estado}' para '${novoEstado}'`
-    };
-    setHistorico([log, ...historico]);
-  };
-
-  const handleAddProjecto = (projecto: Omit<Projecto, 'id' | 'data_inicio'>) => {
-    const newProj: Projecto = {
-      ...projecto,
-      id: `proj-${Date.now()}`,
-      data_inicio: new Date().toISOString()
-    };
-    setProjectos([newProj, ...projectos]);
-    
-    // Log
-    const log: HistoricoItem = {
-      id: `hist-${Date.now() + 1}`,
-      empresa_id: newProj.empresa_id,
-      autor: currentUser?.nome || 'Sistema',
-      data: new Date().toISOString(),
-      tipo: 'projeto',
-      descricao: `Adicionou manualmente um novo projecto de '${newProj.servico}'.`
-    };
-    setHistorico([log, ...historico]);
-  };
-
-  const handleDeleteProjecto = async (id: string) => {
-    setProjectos(projectos.filter(p => p.id !== id));
-    if (dbStatus.connected && dbStatus.tablesExist && supabase) {
-      try {
-        const { error } = await supabase.from("projectos").delete().eq("id", id);
-        if (error) throw error;
-      } catch (err) {
-        console.warn("Erro ao eliminar projecto no Supabase:", err);
-      }
-    }
-  };
-
-  // Core Mutation triggers - Cliente
+  // Core Mutation triggers - Cliente (kept for backward compat but Clientes module is now a placeholder)
   const handleUpdateClienteEstado = (
     id: string,
     estado: EstadoCliente,
@@ -814,14 +665,6 @@ export default function App() {
   ) => {
     setClientes(prev => prev.map(c => {
       if (c.id !== id) return c;
-      
-      // Auto-update Project if client becomes 'Cliente Ativo'
-      if (estado === 'Cliente Ativo' && c.projeto_associado) {
-        setProjectos(currentProjs => currentProjs.map(p => 
-          p.id === c.projeto_associado ? { ...p, estado: 'Entregue' } : p
-        ));
-      }
-
       return {
         ...c,
         estado,
@@ -1374,29 +1217,15 @@ export default function App() {
           )}
 
           {activeModule === 'clientes' && (
-            <Clientes
-              clientes={clientes}
-              projectos={projectos}
-              empresas={empresas}
-              servicosConfig={servicosConfig}
-              onUpdateClienteEstado={handleUpdateClienteEstado}
-              onUpdateClienteProximaAcao={handleUpdateClienteProximaAcao}
-              onAddCliente={handleAddCliente}
-              onDeleteCliente={handleDeleteCliente}
-            />
+            <Clientes />
           )}
 
           {activeModule === 'projectos' && (
             <Projectos
-              projectos={projectos}
               empresas={empresas}
-              clientes={clientes}
               profiles={profiles}
               servicosConfig={servicosConfig}
-              onUpdateProjectoStatus={handleUpdateProjectoStatus}
-              onUpdateProjectoPrazoObs={handleUpdateProjectoPrazoObs}
-              onAddProjecto={handleAddProjecto}
-              onDeleteProjecto={handleDeleteProjecto}
+              onProjectosChanged={handleProjectosChanged}
             />
           )}
 
