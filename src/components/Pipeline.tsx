@@ -29,7 +29,7 @@ interface PipelineProps {
   contactos: Contacto[];
   currentUser: string;
   onAddOportunidade: (oportunidade: Omit<Oportunidade, 'id' | 'data_entrada'>) => void;
-  onUpdateOportunidadeEtapa: (id: string, novaEtapa: PipelineEtapa, motivoPerda?: MotivoPerda, perdaDetalhe?: string) => void;
+  onUpdateOportunidadeEtapa: (id: string, etapa: PipelineEtapa, motivoPerda?: MotivoPerda, perdaDetalhe?: string, notaExtra?: string) => void;
   onDeleteOportunidade: (id: string) => void;
   onAddEmpresa: (empresa: Omit<Empresa, 'id' | 'data_cadastro'>, contacts?: Omit<Contacto, 'id' | 'empresa_id'>[]) => void;
   profiles: UserType[];
@@ -89,7 +89,7 @@ export default function Pipeline({
   
   // Open dropdown states for rows
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
-  const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number } | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top?: number; bottom?: number; right: number } | null>(null);
 
   function toggleDropdown(id: string, e: React.MouseEvent<HTMLButtonElement>) {
     if (openDropdownId === id) {
@@ -97,7 +97,12 @@ export default function Pipeline({
       setDropdownPos(null);
     } else {
       const rect = e.currentTarget.getBoundingClientRect();
-      setDropdownPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+      const spaceBelow = window.innerHeight - rect.bottom;
+      if (spaceBelow < 250) {
+        setDropdownPos({ bottom: window.innerHeight - rect.top + 4, right: window.innerWidth - rect.right });
+      } else {
+        setDropdownPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+      }
       setOpenDropdownId(id);
     }
   }
@@ -148,6 +153,12 @@ export default function Pipeline({
   // Form fields for Motivo de Perda
   const [perdaMotivo, setPerdaMotivo] = useState<MotivoPerda>('Sem orçamento');
   const [perdaMotivoDetalhe, setPerdaMotivoDetalhe] = useState('');
+
+  // Form fields for Reunião Agendada
+  const [reuniaoLeadId, setReuniaoLeadId] = useState<string | null>(null);
+  const [showReuniaoModal, setShowReuniaoModal] = useState(false);
+  const [reuniaoData, setReuniaoData] = useState('');
+  const [reuniaoHora, setReuniaoHora] = useState('');
 
   // Drag State
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
@@ -247,6 +258,12 @@ export default function Pipeline({
       setPerdaMotivo('Sem orçamento');
       setPerdaMotivoDetalhe('');
       setShowPerdaModal(true);
+    } else if (targetEtapa === 'Reunião Agendada') {
+      setReuniaoLeadId(id);
+      setPendingEtapaChange(targetEtapa);
+      setReuniaoData('');
+      setReuniaoHora('');
+      setShowReuniaoModal(true);
     } else {
       onUpdateOportunidadeEtapa(id, targetEtapa);
     }
@@ -352,6 +369,25 @@ export default function Pipeline({
 
     setShowPerdaModal(false);
     setPerdaLeadId(null);
+    setPendingEtapaChange(null);
+  };
+
+  const handleReuniaoSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reuniaoLeadId) return;
+
+    const nota = `[REUNIÃO AGENDADA] Dia ${new Date(reuniaoData).toLocaleDateString('pt-AO')} às ${reuniaoHora}`;
+    
+    onUpdateOportunidadeEtapa(
+      reuniaoLeadId,
+      'Reunião Agendada',
+      undefined,
+      undefined,
+      nota
+    );
+
+    setShowReuniaoModal(false);
+    setReuniaoLeadId(null);
     setPendingEtapaChange(null);
   };
 
@@ -536,11 +572,16 @@ export default function Pipeline({
                     badgeBg = 'bg-blue-100 text-blue-800 font-bold';
                   }
 
+                  let reuniaoText = '';
+                  if (lead.etapa === 'Reunião Agendada' && lead.observacoes) {
+                    const match = lead.observacoes.match(/\[REUNIÃO AGENDADA\] (.*?)(?=\n|$)/);
+                    if (match) reuniaoText = match[1];
+                  }
+
                   return (
                     <tr key={lead.id} className="hover:bg-slate-50/50 transition">
                       <td className="px-5 py-3">
                         <p className="font-extrabold text-slate-900 truncate max-w-[150px]">{empVal ? empVal.nome_empresa : 'Desconhecida'}</p>
-                        {empVal?.cidade && <p className="text-[10px] text-slate-400 font-bold flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" />{empVal.cidade}</p>}
                       </td>
                       <td className="px-5 py-3 text-slate-500 font-mono text-[11px]">
                         {new Date(lead.data_entrada).toLocaleDateString('pt-AO')}
@@ -571,6 +612,11 @@ export default function Pipeline({
                               ({lead.motivo_perda})
                             </span>
                           )}
+                          {reuniaoText && (
+                            <span className="text-[9px] text-purple-600 font-bold block mt-0.5">
+                              {reuniaoText}
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="px-5 py-3 text-right">
@@ -586,7 +632,7 @@ export default function Pipeline({
                             <>
                               <div className="fixed inset-0 z-40" onClick={() => { setOpenDropdownId(null); setDropdownPos(null); }}></div>
                               <div
-                                style={{ top: dropdownPos.top, right: dropdownPos.right }}
+                                style={{ top: dropdownPos.top, bottom: dropdownPos.bottom, right: dropdownPos.right }}
                                 className="fixed w-56 bg-white border border-slate-200 rounded-none shadow-xl z-50 py-1 flex flex-col text-left font-semibold text-xs"
                               >
                                 
@@ -728,6 +774,11 @@ export default function Pipeline({
                 <div className="flex-1 space-y-3 overflow-y-auto max-h-[500px]">
                   {col.leads.map(lead => {
                     const empObj = empresas.find(e => e.id === lead.empresa_id);
+                    let reuniaoText = '';
+                    if (lead.etapa === 'Reunião Agendada' && lead.observacoes) {
+                      const match = lead.observacoes.match(/\[REUNIÃO AGENDADA\] (.*?)(?=\n|$)/);
+                      if (match) reuniaoText = match[1];
+                    }
                     return (
                       <div
                         key={lead.id}
@@ -772,10 +823,6 @@ export default function Pipeline({
                           <h4 className="text-xs font-black text-slate-900 line-clamp-1 group-hover:text-orange-500 transition">
                             {empObj ? empObj.nome_empresa : 'Empresa Indefinida'}
                           </h4>
-                          <div className="flex items-center gap-1 text-[10px] text-slate-400 mt-1">
-                            <User className="w-2.5 h-2.5 text-slate-300" />
-                            <span>{lead.responsavel}</span>
-                          </div>
                         </div>
 
                         {/* Financial Value */}
@@ -808,6 +855,11 @@ export default function Pipeline({
                             {lead.motivo_perda_detalhe && (
                               <p className="italic text-[8px] mt-0.5">"{lead.motivo_perda_detalhe}"</p>
                             )}
+                          </div>
+                        )}
+                        {reuniaoText && (
+                          <div className="p-1 px-2 bg-purple-50 rounded-none text-[9px] text-purple-700 font-bold border border-purple-100">
+                            {reuniaoText}
                           </div>
                         )}
                       </div>
@@ -1028,6 +1080,61 @@ export default function Pipeline({
 
             </form>
 
+          </div>
+        </div>
+      )}
+
+      {/* REUNIÃO MODAL */}
+      {showReuniaoModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-left">
+          <div className="bg-white rounded-none shadow-xl w-full max-w-sm border border-slate-200">
+            <div className="p-4 bg-purple-900 text-white flex justify-between items-center">
+              <h3 className="font-bold text-sm uppercase tracking-wider">Agendar Reunião</h3>
+              <button onClick={() => setShowReuniaoModal(false)} className="text-purple-200 hover:text-white cursor-pointer"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleReuniaoSubmit} className="p-5 space-y-4">
+              <p className="text-[11px] text-slate-500 font-medium">
+                Indique a data e hora em que a reunião com este Lead está agendada.
+              </p>
+              
+              <div>
+                <label className="block text-[10px] font-bold text-slate-700 mb-1 uppercase">Data da Reunião</label>
+                <input
+                  type="date"
+                  required
+                  value={reuniaoData}
+                  onChange={(e) => setReuniaoData(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 focus:outline-none focus:border-purple-500 rounded-none text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-700 mb-1 uppercase">Hora</label>
+                <input
+                  type="time"
+                  required
+                  value={reuniaoHora}
+                  onChange={(e) => setReuniaoHora(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 focus:outline-none focus:border-purple-500 rounded-none text-sm"
+                />
+              </div>
+              
+              <div className="flex justify-end pt-3 border-t border-slate-100 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowReuniaoModal(false)}
+                  className="px-4 py-2 border border-slate-300 text-slate-600 rounded-none font-bold text-xs"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-none text-xs font-bold transition"
+                >
+                  Confirmar
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

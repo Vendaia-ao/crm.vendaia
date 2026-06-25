@@ -11,12 +11,7 @@ import {
   EstadoCliente,
   ProximaAcaoComercial
 } from './types';
-import { 
-  INITIAL_EMPRESAS, 
-  INITIAL_CONTACTOS, 
-  INITIAL_OPORTUNIDADES,
-  INITIAL_HISTORICO
-} from './mockData';
+
 import { supabase } from './lib/supabaseClient';
 import { createClient } from '@supabase/supabase-js';
 import Auth from './components/Auth';
@@ -54,48 +49,25 @@ export default function App() {
     return saved ? JSON.parse(saved) : null;
   });
 
-  // Core CRM states initialized directly from localStorage (fallback to empty arrays)
-  const [empresas, setEmpresas] = useState<Empresa[]>(() => {
-    const saved = localStorage.getItem('vendaia_empresas');
-    return saved ? JSON.parse(saved) : INITIAL_EMPRESAS;
-  });
-  const [contactos, setContactos] = useState<Contacto[]>(() => {
-    const saved = localStorage.getItem('vendaia_contactos');
-    return saved ? JSON.parse(saved) : INITIAL_CONTACTOS;
-  });
-  const [oportunidades, setOportunidades] = useState<Oportunidade[]>(() => {
-    const saved = localStorage.getItem('vendaia_oportunidades');
-    return saved ? JSON.parse(saved) : INITIAL_OPORTUNIDADES;
-  });
+  // Core CRM states initialized directly from database (no local fallback)
+  const [empresas, setEmpresas] = useState<Empresa[]>([]);
+  const [contactos, setContactos] = useState<Contacto[]>([]);
+  const [oportunidades, setOportunidades] = useState<Oportunidade[]>([]);
+  
   // projectos state is now managed inside <Projectos> via Supabase real-time.
   // We keep a lightweight reference here only for Pipeline automation (auto-create on deal close).
-  const [projectos, setProjectos] = useState<{ id: string; oportunidade_id: string; cliente_id?: string }[]>([]);
-  const [historico, setHistorico] = useState<HistoricoItem[]>(() => {
-    const saved = localStorage.getItem('vendaia_historico');
-    return saved ? JSON.parse(saved) : INITIAL_HISTORICO;
-  });
+  const [projectos, setProjectos] = useState<{ id: string; oportunidade_id: string }[]>([]);
+  const [historico, setHistorico] = useState<HistoricoItem[]>([]);
 
   // User profiles state for CRUD and Access Management
-  const [profiles, setProfiles] = useState<User[]>(() => {
-    const saved = localStorage.getItem('vendaia_profiles');
-    return saved ? JSON.parse(saved) : [
-      { id: 'comercial', email: 'comercial@vendaia.com', nome: 'Director Comercial', perfil: 'Comercial', permissoes: 'dashboard,empresas,pipeline,projectos,utilizadores' },
-      { id: 'operacional', email: 'operacional@vendaia.com', nome: 'Director Operacional', perfil: 'Operacional', permissoes: 'dashboard,empresas,pipeline,projectos,utilizadores' }
-    ];
-  });
+  const [profiles, setProfiles] = useState<User[]>([]);
 
   // Clientes (post-sales CRM clients)
-  const [clientes, setClientes] = useState<Cliente[]>(() => {
-    const saved = localStorage.getItem('vendaia_clientes');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [clientes, setClientes] = useState<Cliente[]>([]);
 
-  // Dynamic services configuration persisted locally
+  // Dynamic services configuration
   const DEFAULT_SERVICOS = ['Website', 'Email Corporativo', 'Branding', 'Social Media', 'Tráfego Pago', 'Sistema Personalizado', 'Consultoria Tecnológica'];
-  const [servicosConfig, setServicosConfig] = useState<string[]>(() => {
-    const saved = localStorage.getItem('vendaia_servicos_config');
-    return saved ? JSON.parse(saved) : DEFAULT_SERVICOS;
-  });
+  const [servicosConfig, setServicosConfig] = useState<string[]>(DEFAULT_SERVICOS);
 
   // Navigation module state
   const [activeModule, setActiveModule] = useState<'dashboard' | 'empresas' | 'pipeline' | 'clientes' | 'projectos' | 'utilizadores'>('dashboard');
@@ -153,13 +125,14 @@ export default function App() {
 
         if (status.connected && status.tablesExist) {
           // Perform concurrent requests to CRM database tables (projectos excluded – managed by <Projectos> component)
-          const [empRes, conRes, optRes, projRes, histRes, profRes] = await Promise.all([
+          const [empRes, conRes, optRes, projRes, histRes, profRes, cliRes] = await Promise.all([
             supabase.from("empresas").select("*").order("data_cadastro", { ascending: false }),
             supabase.from("contactos").select("*"),
             supabase.from("oportunidades").select("*").order("data_entrada", { ascending: false }),
-            supabase.from("projectos").select("id, oportunidade_id, cliente_id"),
+            supabase.from("projectos").select("id, oportunidade_id"),
             supabase.from("historico").select("*").order("data", { ascending: false }),
             supabase.from("profiles").select("*").order("data_cadastro", { ascending: false }),
+            supabase.from("clientes").select("*").order("data_fecho", { ascending: false }),
           ]);
 
           // Detect if any table does not exist database-side
@@ -181,25 +154,20 @@ export default function App() {
           const cleanProjectosRef = projRes.data || [];
           const cleanHistorico = histRes.data || [];
           const cleanProfiles = profRes.data || [];
-
+          const cleanClientes = cliRes.data || [];
+          
           setEmpresas(cleanEmpresas);
-          localStorage.setItem('vendaia_empresas', JSON.stringify(cleanEmpresas));
-
           setContactos(cleanContactos);
-          localStorage.setItem('vendaia_contactos', JSON.stringify(cleanContactos));
-
           setOportunidades(cleanOportunidades);
-          localStorage.setItem('vendaia_oportunidades', JSON.stringify(cleanOportunidades));
+          setClientes(cleanClientes);
 
           // Lightweight reference for pipeline automation
           setProjectos(cleanProjectosRef);
 
           setHistorico(cleanHistorico);
-          localStorage.setItem('vendaia_historico', JSON.stringify(cleanHistorico));
 
           if (cleanProfiles.length > 0) {
             setProfiles(cleanProfiles);
-            localStorage.setItem('vendaia_profiles', JSON.stringify(cleanProfiles));
             
             // If current user's profile is updated in DB, sync local currentUser!
             if (currentUser) {
@@ -210,7 +178,6 @@ export default function App() {
               }
             }
           }
-
 
           setLastSynced(new Date().toLocaleTimeString('pt-AO'));
 
@@ -227,35 +194,6 @@ export default function App() {
 
     checkDbAndLoad();
   }, []);
-
-  // Save changes locally unconditionally
-  useEffect(() => {
-    localStorage.setItem('vendaia_empresas', JSON.stringify(empresas));
-  }, [empresas]);
-
-  useEffect(() => {
-    localStorage.setItem('vendaia_contactos', JSON.stringify(contactos));
-  }, [contactos]);
-
-  useEffect(() => {
-    localStorage.setItem('vendaia_oportunidades', JSON.stringify(oportunidades));
-  }, [oportunidades]);
-
-  useEffect(() => {
-    localStorage.setItem('vendaia_historico', JSON.stringify(historico));
-  }, [historico]);
-
-  useEffect(() => {
-    localStorage.setItem('vendaia_profiles', JSON.stringify(profiles));
-  }, [profiles]);
-
-  useEffect(() => {
-    localStorage.setItem('vendaia_clientes', JSON.stringify(clientes));
-  }, [clientes]);
-
-  useEffect(() => {
-    localStorage.setItem('vendaia_servicos_config', JSON.stringify(servicosConfig));
-  }, [servicosConfig]);
 
   // Silent debounced background sync to Supabase when active states change
   // NOTE: projectos are managed by <Projectos> component directly via Supabase – not synced here
@@ -560,7 +498,8 @@ export default function App() {
     id: string, 
     novaEtapa: PipelineEtapa, 
     motivoPerda?: MotivoPerda, 
-    perdaDetalhe?: string
+    perdaDetalhe?: string,
+    notaExtra?: string
   ) => {
     const previousLead = oportunidades.find(o => o.id === id);
     if (!previousLead) return;
@@ -571,7 +510,8 @@ export default function App() {
           ...opt,
           etapa: novaEtapa,
           motivo_perda: novaEtapa === 'Perdido' ? motivoPerda : undefined,
-          motivo_perda_detalhe: novaEtapa === 'Perdido' ? perdaDetalhe : undefined
+          motivo_perda_detalhe: novaEtapa === 'Perdido' ? perdaDetalhe : undefined,
+          observacoes: notaExtra ? (opt.observacoes ? `${opt.observacoes}\n${notaExtra}` : notaExtra) : opt.observacoes
         };
       }
       return opt;
@@ -586,7 +526,8 @@ export default function App() {
       data: new Date().toISOString(),
       tipo: 'etapa_mudança',
       descricao: `Alterou etapa de '${previousLead.etapa}' para '${novaEtapa}'` + 
-        (novaEtapa === 'Perdido' && motivoPerda ? ` (Motivo de Perda: ${motivoPerda})` : '')
+        (novaEtapa === 'Perdido' && motivoPerda ? ` (Motivo de Perda: ${motivoPerda})` : '') +
+        (notaExtra ? ` - ${notaExtra}` : '')
     };
     setHistorico([log, ...historico]);
 
@@ -652,7 +593,7 @@ export default function App() {
   const handleProjectosChanged = useCallback(async () => {
     if (!supabase) return;
     try {
-      const { data } = await supabase.from('projectos').select('id, oportunidade_id, cliente_id');
+      const { data } = await supabase.from('projectos').select('id, oportunidade_id');
       if (data) setProjectos(data);
     } catch (_) {}
   }, []);

@@ -441,11 +441,6 @@ export default function Empresas({
                     <h4 className="text-sm font-bold text-slate-900 leading-snug group-hover:text-orange-600 transition">
                       {emp.nome_empresa}
                     </h4>
-                    <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
-                      <span className="font-semibold text-slate-600 bg-slate-100 rounded-none px-1.5 py-0.2">{emp.nicho || 'Sem nicho'}</span>
-                      <span>•</span>
-                      <span>{emp.cidade || 'Sem cidade'}</span>
-                    </div>
                   </div>
                   <ChevronRight className={`w-4 h-4 text-slate-400 opacity-60 group-hover:translate-x-0.5 transition ${isSelected ? 'text-orange-500' : ''}`} />
                 </div>

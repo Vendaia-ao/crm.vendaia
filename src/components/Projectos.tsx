@@ -16,7 +16,7 @@ interface ProjectosProps {
   onProjectosChanged?: () => void;
 }
 
-const LIST_ESTADOS: EstadoProjecto[] = ['Em Produção', 'Em Revisão', 'Pronto para Entrega'];
+const LIST_ESTADOS: EstadoProjecto[] = ['Em Produção', 'Em Revisão', 'Pronto para Entrega', 'Entregue'];
 
 function estadoBadge(estado: string) {
   if (estado === 'Em Produção') return 'bg-orange-50 text-orange-700 border-orange-200';
@@ -69,10 +69,23 @@ export default function Projectos({ empresas, profiles, servicosConfig, onProjec
 
   // ─── Table dropdown ───────────────────────────────────────────────
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
-  const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number } | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top?: number; bottom?: number; right: number } | null>(null);
 
   // ─── Kanban drag ──────────────────────────────────────────────────
   const [draggedProjId, setDraggedProjId] = useState<string | null>(null);
+
+  // ─── Workflow Modals ──────────────────────────────────────────────
+  const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{ id: string; estado: EstadoProjecto } | null>(null);
+  
+  // Apresentação Modal Fields
+  const [showApresentacaoModal, setShowApresentacaoModal] = useState(false);
+  const [apresentacaoData, setApresentacaoData] = useState('');
+  const [apresentacaoHora, setApresentacaoHora] = useState('');
+  const [apresentacaoLocal, setApresentacaoLocal] = useState('');
+
+  // Entrega Modal Fields
+  const [showEntregaModal, setShowEntregaModal] = useState(false);
+  const [entregaData, setEntregaData] = useState('');
 
   // ─────────────────────────────────────────────────────────────────
   // LOAD from Supabase
@@ -168,6 +181,30 @@ export default function Projectos({ empresas, profiles, servicosConfig, onProjec
   // MUTATIONS → Supabase only
   // ─────────────────────────────────────────────────────────────────
   const handleUpdateStatus = async (id: string, novoEstado: EstadoProjecto) => {
+    setOpenDropdownId(null);
+    setDropdownPos(null);
+
+    if (novoEstado === 'Pronto para Entrega') {
+      setPendingStatusUpdate({ id, estado: novoEstado });
+      setApresentacaoData('');
+      setApresentacaoHora('');
+      setApresentacaoLocal('');
+      setShowApresentacaoModal(true);
+      return;
+    }
+    
+    if (novoEstado === 'Entregue') {
+      setPendingStatusUpdate({ id, estado: novoEstado });
+      const d = new Date();
+      setEntregaData(d.toISOString().split('T')[0]);
+      setShowEntregaModal(true);
+      return;
+    }
+
+    await executeStatusUpdate(id, novoEstado);
+  };
+
+  const executeStatusUpdate = async (id: string, novoEstado: EstadoProjecto, extraClienteData?: any) => {
     if (!supabase) return;
     setIsSaving(true);
     try {
@@ -176,15 +213,60 @@ export default function Projectos({ empresas, profiles, servicosConfig, onProjec
         .update({ estado: novoEstado })
         .eq('id', id);
       if (err) throw err;
+
       // Optimistic UI
       setProjectos(prev => prev.map(p => p.id === id ? { ...p, estado: novoEstado } : p));
+
+      // If we have extra cliente data (reunião, etc)
+      if (extraClienteData) {
+        // Need to find cliente_id. Clientes table has projeto_associado = id
+        await supabase.from('clientes').update(extraClienteData).eq('projeto_associado', id);
+      }
+
     } catch (e: any) {
       alert(`Erro ao actualizar estado: ${e.message}`);
     } finally {
       setIsSaving(false);
       setOpenDropdownId(null);
       setDropdownPos(null);
+      setPendingStatusUpdate(null);
+      setShowApresentacaoModal(false);
+      setShowEntregaModal(false);
     }
+  };
+
+  const handleApresentacaoSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pendingStatusUpdate) return;
+    
+    const extraData = {
+      estado: 'Apresentação Agendada',
+      data_reuniao: apresentacaoData,
+      hora_reuniao: apresentacaoHora,
+      local_reuniao: apresentacaoLocal
+    };
+
+    await executeStatusUpdate(pendingStatusUpdate.id, pendingStatusUpdate.estado, extraData);
+  };
+
+  const handleEntregaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pendingStatusUpdate) return;
+    
+    const extraData = {
+      estado: 'Ativo',
+      data_fecho: entregaData // storing delivery date in data_fecho/cadastro context if needed, or observacoes
+    };
+
+    // We also should save the delivery date on the project if we had the field, but user requested "regista a data de entrega" on cliente / projecto.
+    // For now we add it to the cliente's extra data and also update the project's 'observacoes'
+    const proj = projectos.find(p => p.id === pendingStatusUpdate.id);
+    if (proj) {
+      const novaObs = (proj.observacoes || '') + `\n[ENTREGUE em ${formatDate(entregaData)}]`;
+      await supabase.from('projectos').update({ observacoes: novaObs, estado: 'Entregue' }).eq('id', proj.id);
+    }
+
+    await executeStatusUpdate(pendingStatusUpdate.id, pendingStatusUpdate.estado, extraData);
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
@@ -269,7 +351,12 @@ export default function Projectos({ empresas, profiles, servicosConfig, onProjec
       setDropdownPos(null);
     } else {
       const rect = e.currentTarget.getBoundingClientRect();
-      setDropdownPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+      const spaceBelow = window.innerHeight - rect.bottom;
+      if (spaceBelow < 250) {
+        setDropdownPos({ bottom: window.innerHeight - rect.top + 4, right: window.innerWidth - rect.right });
+      } else {
+        setDropdownPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+      }
       setOpenDropdownId(id);
     }
   }
@@ -562,7 +649,7 @@ export default function Projectos({ empresas, profiles, servicosConfig, onProjec
                                 <>
                                   <div className="fixed inset-0 z-40" onClick={() => { setOpenDropdownId(null); setDropdownPos(null); }} />
                                   <div
-                                    style={{ top: dropdownPos.top, right: dropdownPos.right }}
+                                    style={{ top: dropdownPos.top, bottom: dropdownPos.bottom, right: dropdownPos.right }}
                                     className="fixed w-52 bg-white border border-slate-200 rounded-none shadow-xl z-50 py-1 flex flex-col text-left font-semibold text-xs"
                                   >
                                     <button
@@ -728,6 +815,116 @@ export default function Projectos({ empresas, profiles, servicosConfig, onProjec
                   className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-none text-xs font-bold transition flex items-center gap-2 disabled:opacity-50">
                   {isSaving && <Loader2 className="w-3 h-3 animate-spin" />}
                   Adicionar Projecto
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL APRESENTACAO */}
+      {showApresentacaoModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-none shadow-xl w-full max-w-sm overflow-hidden text-left border border-slate-200">
+            <div className="px-5 py-4 bg-slate-900 text-white flex justify-between items-center border-b border-slate-800">
+              <h3 className="font-bold text-sm">Agendar Apresentação</h3>
+              <button onClick={() => setShowApresentacaoModal(false)} className="text-slate-400 hover:text-white transition">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleApresentacaoSubmit} className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Data da Apresentação</label>
+                <input
+                  type="date"
+                  required
+                  value={apresentacaoData}
+                  onChange={e => setApresentacaoData(e.target.value)}
+                  className="w-full border border-slate-300 px-3 py-2 text-sm focus:ring-1 focus:ring-orange-500 rounded-none outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Hora</label>
+                <input
+                  type="time"
+                  required
+                  value={apresentacaoHora}
+                  onChange={e => setApresentacaoHora(e.target.value)}
+                  className="w-full border border-slate-300 px-3 py-2 text-sm focus:ring-1 focus:ring-orange-500 rounded-none outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Local / Link Reunião</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Google Meet ou Escritório"
+                  value={apresentacaoLocal}
+                  onChange={e => setApresentacaoLocal(e.target.value)}
+                  className="w-full border border-slate-300 px-3 py-2 text-sm focus:ring-1 focus:ring-orange-500 rounded-none outline-none"
+                />
+              </div>
+              <div className="pt-2 flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowApresentacaoModal(false)}
+                  className="px-4 py-2 border border-slate-300 text-slate-600 rounded-none hover:bg-slate-50 text-sm font-semibold transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="px-5 py-2 bg-emerald-600 text-white rounded-none hover:bg-emerald-700 text-sm font-bold transition flex items-center gap-2"
+                >
+                  {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Confirmar Agendamento
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL ENTREGA */}
+      {showEntregaModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-none shadow-xl w-full max-w-sm overflow-hidden text-left border border-slate-200">
+            <div className="px-5 py-4 bg-slate-900 text-white flex justify-between items-center border-b border-slate-800">
+              <h3 className="font-bold text-sm">Registar Entrega de Projecto</h3>
+              <button onClick={() => setShowEntregaModal(false)} className="text-slate-400 hover:text-white transition">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleEntregaSubmit} className="p-5 space-y-4">
+              <p className="text-xs text-slate-500 font-medium">
+                Ao marcar como entregue, o estado do cliente mudará automaticamente para "Cliente Ativo".
+              </p>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Data de Entrega</label>
+                <input
+                  type="date"
+                  required
+                  value={entregaData}
+                  onChange={e => setEntregaData(e.target.value)}
+                  className="w-full border border-slate-300 px-3 py-2 text-sm focus:ring-1 focus:ring-orange-500 rounded-none outline-none"
+                />
+              </div>
+              <div className="pt-2 flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowEntregaModal(false)}
+                  className="px-4 py-2 border border-slate-300 text-slate-600 rounded-none hover:bg-slate-50 text-sm font-semibold transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="px-5 py-2 bg-blue-600 text-white rounded-none hover:bg-blue-700 text-sm font-bold transition flex items-center gap-2"
+                >
+                  {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Registar Entrega
                 </button>
               </div>
             </form>
