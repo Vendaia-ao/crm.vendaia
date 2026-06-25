@@ -16,7 +16,7 @@ export default function Auth({ onLogin }: AuthProps) {
   const handleManualLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     if (!email || !password) {
       setError('Por favor preencha todos os campos.');
       return;
@@ -112,18 +112,18 @@ export default function Auth({ onLogin }: AuthProps) {
   return (
     <div id="auth-container" className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-md bg-white rounded-none shadow-xl border border-slate-100 overflow-hidden">
-        
+
         {/* Header Branding */}
         <div className="px-8 pt-8 pb-8 bg-slate-900 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500 rounded-none blur-3xl opacity-20 -mr-16 -mt-16"></div>
           <div className="flex items-center justify-center">
-            <img 
-              src="/assets/logo%20branco.png" 
-              className="h-12 object-contain" 
-              alt="VENDAIA SOLUTIONS" 
-              onError={(e) => { 
-                (e.currentTarget as HTMLImageElement).style.display = 'none'; 
-              }} 
+            <img
+              src="/assets/logo%20branco.png"
+              className="h-12 object-contain"
+              alt="VENDAIA SOLUTIONS"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = 'none';
+              }}
             />
           </div>
         </div>
@@ -141,7 +141,7 @@ export default function Auth({ onLogin }: AuthProps) {
               <label className="block text-xs font-bold text-slate-700 mb-1 tracking-wider">EMAIL INSTITUCIONAL</label>
               <input
                 type="email"
-                placeholder="colaborador@vendaia.com"
+                placeholder="colaborador@vendaia.site"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
