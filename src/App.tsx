@@ -74,7 +74,6 @@ export default function App() {
 
   // Main Menu Hamburguer responsive States
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Advanced settings modal
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -720,7 +719,7 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-slate-50 text-slate-900 font-sans flex flex-col md:flex-row">
+    <div className="fixed inset-0 overflow-hidden bg-slate-50 text-slate-900 font-sans flex flex-col md:flex-row">
       
       {/* DESKTOP SIDEBAR - VISIBLE ON MD AND UP */}
       <aside className={`hidden md:flex ${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-white border-r border-slate-200 flex-col h-screen sticky top-0 shrink-0 transition-all duration-300`}>
@@ -911,18 +910,10 @@ export default function App() {
         </div>
       </aside>
 
-      {/* MOBILE HEADER & SCROLL BAR BAR - VISIBLE ON MOBILE ONLY */}
-      <div className="md:hidden flex flex-col bg-slate-900 text-white z-40 shadow-md">
-        <div className="flex items-center justify-between px-4 h-16 border-b border-slate-950">
+      {/* MOBILE HEADER & HORIZONTAL NAVBAR - VISIBLE ON MOBILE ONLY */}
+      <div className="md:hidden flex flex-col bg-slate-900 text-white z-40 shadow-md shrink-0">
+        <div className="flex items-center justify-between px-4 h-16 border-b border-slate-800">
           <div className="flex items-center gap-2 py-1">
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-1.5 rounded-none bg-slate-800 text-orange-500 hover:text-white hover:bg-slate-700 transition cursor-pointer"
-              title="Menu Hamburguer"
-              id="mobile-hamburguer-btn"
-            >
-              <Menu className="w-5 h-5 animate-pulse" />
-            </button>
             <img 
               src="/assets/logo%20branco.png" 
               className="h-8 object-contain max-w-[125px]" 
@@ -951,87 +942,8 @@ export default function App() {
           </div>
         </div>
 
-        {/* Mobile Hamburguer Drawer Menu (collapsible list) */}
-        {isMobileMenuOpen && (
-          <div className="bg-slate-950 border-b border-slate-800 px-4 py-4 space-y-4 transition-all duration-300">
-            <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest px-1">Navegação e Módulos</div>
-            <div className="grid grid-cols-2 gap-2">
-              {hasPermission('dashboard') && (
-                <button
-                  onClick={() => {
-                    setActiveModule('dashboard');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`p-3 rounded-none text-xs font-black transition flex flex-col items-center gap-2 cursor-pointer ${
-                    activeModule === 'dashboard' ? 'bg-orange-500 text-slate-950 shadow-inner' : 'bg-slate-900 text-slate-300 hover:bg-slate-850'
-                  }`}
-                >
-                  <LayoutDashboard className="w-5 h-5 text-slate-400" />
-                  <span>Dashboard</span>
-                </button>
-              )}
-              {hasPermission('empresas') && (
-                <button
-                  onClick={() => {
-                    setActiveModule('empresas');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`p-3 rounded-none text-xs font-black transition flex flex-col items-center gap-2 cursor-pointer ${
-                    activeModule === 'empresas' ? 'bg-orange-500 text-slate-950 shadow-inner' : 'bg-slate-900 text-slate-300 hover:bg-slate-850'
-                  }`}
-                >
-                  <Building2 className="w-5 h-5 text-slate-400" />
-                  <span>Empresas</span>
-                </button>
-              )}
-              {hasPermission('pipeline') && (
-                <button
-                  onClick={() => {
-                    setActiveModule('pipeline');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`p-3 rounded-none text-xs font-black transition flex flex-col items-center gap-2 cursor-pointer ${
-                    activeModule === 'pipeline' ? 'bg-orange-500 text-slate-950 shadow-inner' : 'bg-slate-900 text-slate-300 hover:bg-slate-850'
-                  }`}
-                >
-                  <GitBranch className="w-5 h-5 text-slate-400" />
-                  <span>Pipeline</span>
-                </button>
-              )}
-              {hasPermission('projectos') && (
-                <button
-                  onClick={() => {
-                    setActiveModule('projectos');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`p-3 rounded-none text-xs font-black transition flex flex-col items-center gap-2 cursor-pointer ${
-                    activeModule === 'projectos' ? 'bg-orange-500 text-slate-950 shadow-inner' : 'bg-slate-900 text-slate-300 hover:bg-slate-850'
-                  }`}
-                >
-                  <FolderLock className="w-5 h-5 text-slate-400" />
-                  <span>Projectos</span>
-                </button>
-              )}
-              {hasPermission('utilizadores') && (
-                <button
-                  onClick={() => {
-                    setActiveModule('utilizadores');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`p-3 rounded-none text-xs font-black transition flex flex-col items-center gap-2 cursor-pointer ${
-                    activeModule === 'utilizadores' ? 'bg-orange-500 text-slate-950 shadow-inner' : 'bg-slate-905 text-slate-300 hover:bg-slate-850'
-                  }`}
-                >
-                  <Shield className="w-5 h-5 text-slate-400" />
-                  <span>Utilizadores</span>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Fallback layout pill navigation on mobile for super quick click-through */}
-        <div className="bg-slate-800 px-3 py-2 flex gap-1.5 overflow-x-auto whitespace-nowrap border-b border-slate-700/60 transition-all">
+        {/* Horizontal layout pill navigation on mobile */}
+        <div className="bg-slate-800 px-3 py-2 flex gap-1.5 overflow-x-auto whitespace-nowrap shadow-inner scrollbar-hide">
           {hasPermission('dashboard') && (
             <button
               onClick={() => setActiveModule('dashboard')}

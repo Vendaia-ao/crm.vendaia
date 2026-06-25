@@ -579,7 +579,7 @@ export default function Projectos({ empresas, profiles, servicosConfig, onProjec
                               </div>
                             </div>
 
-                            <div className="mt-3 pt-3 border-t border-slate-50 flex justify-end items-center">
+                            <div className="mt-3 pt-3 border-t border-slate-100 flex justify-between items-center">
                               <button
                                 onClick={() => { setEditingProj(proj); setEditPrazo(proj.prazo); setEditObs(proj.observacoes || ''); }}
                                 className="p-1 text-slate-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition"
@@ -587,6 +587,47 @@ export default function Projectos({ empresas, profiles, servicosConfig, onProjec
                               >
                                 <FileText className="w-3.5 h-3.5" />
                               </button>
+                              <div className="relative">
+                                <button
+                                  onClick={(e) => toggleDropdown(proj.id, e)}
+                                  className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-none transition"
+                                  title="Ações"
+                                >
+                                  <MoreVertical className="w-3.5 h-3.5" />
+                                </button>
+                                {openDropdownId === proj.id && dropdownPos && (
+                                  <>
+                                    <div className="fixed inset-0 z-40" onClick={() => { setOpenDropdownId(null); setDropdownPos(null); }} />
+                                    <div
+                                      style={{ top: dropdownPos.top, bottom: dropdownPos.bottom, right: dropdownPos.right }}
+                                      className="fixed w-52 bg-white border border-slate-200 rounded-none shadow-xl z-50 py-1 flex flex-col text-left font-semibold text-xs"
+                                    >
+                                      <button
+                                        onClick={() => { setOpenDropdownId(null); setDropdownPos(null); setEditingProj(proj); setEditPrazo(proj.prazo); setEditObs(proj.observacoes || ''); }}
+                                        className="px-4 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+                                      >
+                                        <FileText className="w-4 h-4 text-blue-500" /> Notas &amp; Prazos
+                                      </button>
+                                      <div className="px-4 py-2 hover:bg-slate-50 text-slate-700 flex flex-col gap-1 border-t border-slate-100 mt-1 pt-2">
+                                        <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Mudar Estado</span>
+                                        <select
+                                          value={proj.estado}
+                                          onChange={e => handleUpdateStatus(proj.id, e.target.value as EstadoProjecto)}
+                                          className="w-full text-xs bg-slate-50 border border-slate-200 rounded-none p-1"
+                                        >
+                                          {LIST_ESTADOS.map(et => <option key={et} value={et}>{et}</option>)}
+                                        </select>
+                                      </div>
+                                      <button
+                                        onClick={() => handleDelete(proj.id)}
+                                        className="px-4 py-2 mt-1 border-t border-slate-100 hover:bg-red-50 text-red-600 flex items-center gap-2"
+                                      >
+                                        <Trash2 className="w-4 h-4" /> Eliminar Projecto
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </div>
                         );
