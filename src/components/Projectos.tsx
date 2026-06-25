@@ -175,6 +175,7 @@ export default function Projectos({ empresas, profiles, servicosConfig, onProjec
     emProducao: projectos.filter(p => p.estado === 'Em Produção').length,
     emRevisao: projectos.filter(p => p.estado === 'Em Revisão').length,
     prontoEntrega: projectos.filter(p => p.estado === 'Pronto para Entrega').length,
+    entregues: projectos.filter(p => p.estado === 'Entregue').length,
     totalAOA: projectos.reduce((sum, p) => sum + p.valor, 0)
   }), [projectos]);
 
@@ -426,7 +427,7 @@ export default function Projectos({ empresas, profiles, servicosConfig, onProjec
       {!loading && !error && (
         <>
           {/* ── KPI Top board ── */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="bg-white p-4 rounded-none border border-slate-100 shadow-sm text-center">
               <span className="text-[10px] font-bold text-slate-400 block uppercase">Total Projetos</span>
               <span className="text-xl font-extrabold text-slate-800 block mt-1">{stats.totalProjetos}</span>
@@ -440,8 +441,12 @@ export default function Projectos({ empresas, profiles, servicosConfig, onProjec
               <span className="text-xl font-extrabold text-indigo-500 block mt-1">{stats.emRevisao}</span>
             </div>
             <div className="bg-white p-4 rounded-none border border-slate-100 shadow-sm text-center">
-              <span className="text-[10px] font-bold text-slate-400 block uppercase">Prontos para Entrega</span>
+              <span className="text-[10px] font-bold text-slate-400 block uppercase">Prontos p/ Entrega</span>
               <span className="text-xl font-extrabold text-emerald-500 block mt-1">{stats.prontoEntrega}</span>
+            </div>
+            <div className="bg-white p-4 rounded-none border border-slate-100 shadow-sm text-center">
+              <span className="text-[10px] font-bold text-slate-400 block uppercase">Entregues</span>
+              <span className="text-xl font-extrabold text-blue-600 block mt-1">{stats.entregues}</span>
             </div>
             <div className="bg-white p-4 rounded-none border border-slate-100 shadow-sm text-center col-span-2 md:col-span-1">
               <span className="text-[10px] font-bold text-slate-400 block uppercase">Faturação Acumulada</span>

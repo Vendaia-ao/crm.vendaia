@@ -1008,7 +1008,7 @@ export default function App() {
       </div>
 
       {/* MAIN CONTAINER CONTENT SECTION */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
         
         {/* SUB-HEADER USER STATE LINE */}
         <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-8 shrink-0">
