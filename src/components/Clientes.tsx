@@ -221,87 +221,154 @@ export default function Clientes({
     </div>
   );
 
-  const renderDocumentSection = ({ tipo, multi }: { tipo: TipoDocumentoCliente; multi: boolean }) => {
-    const docs = docsDoPar(tipo);
+  const renderDocumentsView = () => {
+    // All real docs (excluding __pasta__ markers) for this service
+    const allDocs = documentosCliente.filter(
+      d => d.nome_empresa === selectedEmpresaName && d.servico_contratado === selectedServico && d.tipo !== '__pasta__'
+    );
+
+    const totalLinks = allDocs.length;
+
     return (
-      <div key={tipo} className="bg-white p-5 border border-slate-200 shadow-sm flex flex-col">
-        <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3 shrink-0">
-          <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-            <FileText className="w-4 h-4 text-slate-400" /> {tipo}
-          </h3>
-          {(multi || docs.length === 0) && (
-            <button
-              onClick={() => triggerAddLink(tipo)}
-              className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 px-3 py-1.5 transition flex items-center gap-1 cursor-pointer"
-            >
-              <LinkIcon className="w-3 h-3" /> Add Link
+      <div className="space-y-6 pb-8">
+        {/* Header */}
+        <div className="bg-white p-4 shadow-sm border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setSelectedServico(null)} className="p-2 hover:bg-slate-100 text-slate-500 transition cursor-pointer border border-transparent hover:border-slate-200">
+              <ChevronLeft className="w-5 h-5" />
             </button>
-          )}
-        </div>
-        {docs.length === 0 ? (
-          <div className="text-center py-6 bg-slate-50 border border-dashed border-slate-200 min-h-[90px] flex flex-col items-center justify-center">
-            <p className="text-xs text-slate-400">Nenhum link associado.</p>
+            <div>
+              <h2 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2 flex-wrap">
+                <FolderOpen className="w-5 h-5 text-amber-500 shrink-0" />
+                {selectedEmpresaName}
+                <span className="text-slate-400 font-normal mx-1">/</span>
+                <span className="text-blue-700">{selectedServico}</span>
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                {totalLinks === 0 ? 'Nenhum link adicionado.' : `${totalLinks} ${totalLinks === 1 ? 'link' : 'links'} guardados`}
+              </p>
+            </div>
           </div>
-        ) : (
-          <div className="space-y-2">
-            {docs.map(doc => (
-              <div key={doc.id} className="group flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition">
-                <div
-                  className="flex items-center gap-3 overflow-hidden flex-1 cursor-pointer"
-                  onClick={() => window.open(doc.url_ficheiro, '_blank', 'noopener,noreferrer')}
-                >
-                  <div className="w-8 h-8 shrink-0 bg-white border border-slate-200 flex items-center justify-center group-hover:bg-blue-50 transition">
-                    <ExternalLink className="w-4 h-4 text-blue-500" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-slate-700 truncate group-hover:text-blue-600 transition" title={doc.nome_ficheiro}>
-                      {doc.nome_ficheiro}
-                    </p>
-                    <p className="text-[10px] text-slate-400">{new Date(doc.data_upload).toLocaleDateString('pt-AO')}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity pl-2 shrink-0">
-                  <button
-                    onClick={e => { e.stopPropagation(); onDeleteDocumento(doc.id); }}
-                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 transition cursor-pointer"
-                    title="Remover Link"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+          {/* Quick-add buttons per category */}
+          <div className="flex flex-wrap gap-2 pl-14 sm:pl-0">
+            {TIPOS_DOCUMENTO.map(({ tipo }) => (
+              <button
+                key={tipo}
+                onClick={() => triggerAddLink(tipo)}
+                className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 px-3 py-2 transition flex items-center gap-1.5 cursor-pointer border border-slate-200 hover:border-blue-200"
+              >
+                <Plus className="w-3 h-3" /> {tipo}
+              </button>
             ))}
           </div>
-        )}
+        </div>
+
+        {/* Table */}
+        <div className="bg-white border border-slate-200 shadow-sm overflow-hidden">
+          {allDocs.length === 0 ? (
+            <div className="text-center py-16 flex flex-col items-center gap-3">
+              <LinkIcon className="w-10 h-10 text-slate-200" />
+              <div>
+                <p className="text-sm font-semibold text-slate-500">Nenhum documento associado ainda.</p>
+                <p className="text-xs text-slate-400 mt-1">Utilize os botões acima para adicionar links do Google Drive.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 w-36">Categoria</th>
+                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Nome do Documento</th>
+                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 w-32 text-center">Data</th>
+                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 w-28 text-center">Acções</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {TIPOS_DOCUMENTO.map(({ tipo, multi }) => {
+                    const rows = allDocs.filter(d => d.tipo === tipo);
+                    if (rows.length === 0) {
+                      // Show empty placeholder row per category
+                      return (
+                        <tr key={tipo} className="border-b border-slate-100 last:border-0 bg-slate-50/40">
+                          <td className="px-4 py-3">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-sm">
+                              <FileText className="w-3 h-3" />{tipo}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-slate-400 italic">— sem link —</td>
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              onClick={() => triggerAddLink(tipo)}
+                              className="text-[10px] font-bold text-blue-500 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 transition cursor-pointer flex items-center gap-1 mx-auto"
+                            >
+                              <Plus className="w-3 h-3" /> Adicionar
+                            </button>
+                          </td>
+                          <td className="px-4 py-3" />
+                        </tr>
+                      );
+                    }
+
+                    return rows.map((doc, idx) => (
+                      <tr key={doc.id} className="group border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-3 align-middle">
+                          {idx === 0 && (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded-sm whitespace-nowrap">
+                              <FileText className="w-3 h-3 shrink-0" />{tipo}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 align-middle">
+                          <button
+                            onClick={() => window.open(doc.url_ficheiro, '_blank', 'noopener,noreferrer')}
+                            className="flex items-center gap-2 text-left group/link cursor-pointer"
+                            title={doc.url_ficheiro}
+                          >
+                            <div className="w-7 h-7 shrink-0 bg-blue-50 border border-blue-100 flex items-center justify-center group-hover/link:bg-blue-100 transition rounded-sm">
+                              <ExternalLink className="w-3.5 h-3.5 text-blue-500" />
+                            </div>
+                            <span className="text-sm font-semibold text-slate-700 group-hover/link:text-blue-600 transition truncate max-w-xs">
+                              {doc.nome_ficheiro || doc.url_ficheiro}
+                            </span>
+                          </button>
+                        </td>
+                        <td className="px-4 py-3 align-middle text-center">
+                          <span className="text-xs text-slate-400 tabular-nums">
+                            {new Date(doc.data_upload).toLocaleDateString('pt-AO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 align-middle text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            {(multi || rows.length === 1) && idx === rows.length - 1 && (
+                              <button
+                                onClick={() => triggerAddLink(tipo)}
+                                className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 transition cursor-pointer rounded-sm opacity-0 group-hover:opacity-100"
+                                title={`Adicionar outro ${tipo}`}
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => onDeleteDocumento(doc.id)}
+                              className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 transition cursor-pointer rounded-sm opacity-0 group-hover:opacity-100"
+                              title="Remover Link"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ));
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     );
   };
-
-  const renderDocumentsView = () => (
-    <div className="space-y-6 pb-8">
-      <div className="bg-white p-4 shadow-sm border border-slate-200 flex items-center gap-4">
-        <button onClick={() => setSelectedServico(null)} className="p-2 hover:bg-slate-100 text-slate-500 transition cursor-pointer">
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h2 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-            <FolderOpen className="w-5 h-5 text-amber-500" />
-            {selectedEmpresaName}
-            <span className="text-slate-400 font-normal mx-1">/</span>
-            <span className="text-blue-700">{selectedServico}</span>
-          </h2>
-          <p className="text-xs text-slate-500 mt-1">Repositório de documentos exclusivos deste serviço.</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {TIPOS_DOCUMENTO.filter(t => t.tipo !== 'Factura Genérica').map(t => renderDocumentSection(t))}
-        <div className="lg:col-span-2">
-          {renderDocumentSection({ tipo: 'Factura Genérica', multi: true })}
-        </div>
-      </div>
-    </div>
-  );
 
   // ── MODALS ─────────────────────────────────────────────────────────────────
 
