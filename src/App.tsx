@@ -38,6 +38,7 @@ import {
   Plus,
   Trash2,
   Key,
+  FileText,
   X
 } from 'lucide-react';
 
@@ -68,6 +69,10 @@ export default function App() {
   const DEFAULT_SERVICOS = ['Website', 'Email Corporativo', 'Branding', 'Social Media', 'Tráfego Pago', 'Sistema Personalizado', 'Consultoria Tecnológica'];
   const [servicosConfig, setServicosConfig] = useState<string[]>(DEFAULT_SERVICOS);
 
+  // Dynamic document types configuration for Clientes module
+  const DEFAULT_TIPOS_DOCUMENTO = ['Proposta', 'Contrato', 'Factura Recíbo', 'Termo de Entrega', 'Factura Genérica'];
+  const [tiposDocumentoConfig, setTiposDocumentoConfig] = useState<string[]>(DEFAULT_TIPOS_DOCUMENTO);
+
   // Navigation module state
   const [activeModule, setActiveModule] = useState<'dashboard' | 'empresas' | 'pipeline' | 'clientes' | 'projectos' | 'utilizadores'>('dashboard');
 
@@ -77,6 +82,7 @@ export default function App() {
   // Advanced settings modal
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [newServicoInput, setNewServicoInput] = useState('');
+  const [newTipoDocInput, setNewTipoDocInput] = useState('');
 
   // Password change modal
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -716,6 +722,27 @@ export default function App() {
     }
   };
 
+  const handleAddTipoDocumento = () => {
+    const trimmed = newTipoDocInput.trim();
+    if (!trimmed) return;
+    if (tiposDocumentoConfig.includes(trimmed)) {
+      alert('Este tipo de documento já existe na lista.');
+      return;
+    }
+    setTiposDocumentoConfig(prev => [...prev, trimmed]);
+    setNewTipoDocInput('');
+  };
+
+  const handleRemoveTipoDocumento = (t: string) => {
+    if (tiposDocumentoConfig.length <= 1) {
+      alert('Tem de existir pelo menos um tipo de documento configurado.');
+      return;
+    }
+    if (confirm(`Remover o tipo de documento '${t}'?`)) {
+      setTiposDocumentoConfig(prev => prev.filter(x => x !== t));
+    }
+  };
+
   // Password change handler
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1108,6 +1135,7 @@ export default function App() {
             <Clientes
               empresas={empresas}
               servicosConfig={servicosConfig}
+              tiposDocumentoConfig={tiposDocumentoConfig}
               documentosCliente={documentosCliente}
               onAddDocumento={handleAddDocumentoCliente}
               onDeleteDocumento={handleDeleteDocumentoCliente}
@@ -1549,6 +1577,49 @@ CREATE POLICY "Acesso total Documentos Cliente" ON documentos_cliente FOR ALL TO
                   <button
                     onClick={handleAddServico}
                     className="bg-blue-600 text-white px-3 py-2 rounded-none hover:bg-blue-700 transition flex items-center gap-1 text-sm font-semibold"
+                  >
+                    <Plus className="w-4 h-4" /> Adicionar
+                  </button>
+                </div>
+              </div>
+
+              {/* Document Types Management */}
+              <div className="border-t border-slate-100 pt-6">
+                <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-blue-500" /> Tipos de Documento (Clientes)
+                </h3>
+                <p className="text-xs text-slate-500 mb-3">
+                  Estes tipos de documento estão disponíveis para associar a cada cliente na gestão de clientes.
+                </p>
+                <div className="flex flex-wrap gap-2 mb-3 min-h-[44px] bg-slate-50 rounded-none p-3 border border-slate-200">
+                  {tiposDocumentoConfig.map(t => (
+                    <span
+                      key={t}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-none text-xs font-semibold bg-green-100 text-green-800"
+                    >
+                      {t}
+                      <button
+                        onClick={() => handleRemoveTipoDocumento(t)}
+                        className="hover:text-red-600 transition ml-1"
+                        title={`Remover "${t}"`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newTipoDocInput}
+                    onChange={e => setNewTipoDocInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleAddTipoDocumento()}
+                    placeholder="Novo tipo (ex: Adenda, Orçamento...)"
+                    className="flex-1 border border-slate-300 rounded-none px-3 py-2 text-sm focus:ring-2 focus:ring-green-400 outline-none"
+                  />
+                  <button
+                    onClick={handleAddTipoDocumento}
+                    className="bg-green-600 text-white px-3 py-2 rounded-none hover:bg-green-700 transition flex items-center gap-1 text-sm font-semibold"
                   >
                     <Plus className="w-4 h-4" /> Adicionar
                   </button>

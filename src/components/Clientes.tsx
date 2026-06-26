@@ -5,22 +5,18 @@ import { Folder, FolderOpen, FileText, Link as LinkIcon, Trash2, ChevronLeft, Se
 interface ClientesProps {
   empresas?: Empresa[];
   servicosConfig?: string[];
+  tiposDocumentoConfig?: string[];
   documentosCliente?: DocumentoCliente[];
   onAddDocumento?: (doc: Omit<DocumentoCliente, 'id' | 'data_upload'>) => void;
   onDeleteDocumento?: (id: string) => void;
 }
 
-const TIPOS_DOCUMENTO: { tipo: TipoDocumentoCliente; multi: boolean }[] = [
-  { tipo: 'Proposta', multi: false },
-  { tipo: 'Contrato', multi: false },
-  { tipo: 'Factura Recibo', multi: false },
-  { tipo: 'Termo de Entrega', multi: false },
-  { tipo: 'Factura Genérica', multi: true },
-];
+const DEFAULT_TIPOS_DOCUMENTO = ['Proposta', 'Contrato', 'Factura Recibo', 'Termo de Entrega', 'Factura Genérica'];
 
 export default function Clientes({
   empresas = [],
   servicosConfig = [],
+  tiposDocumentoConfig = DEFAULT_TIPOS_DOCUMENTO,
   documentosCliente = [],
   onAddDocumento = () => {},
   onDeleteDocumento = () => {},
@@ -31,6 +27,9 @@ export default function Clientes({
 
   const [searchTerm, setSearchTerm] = useState('');
 
+  // The last type selected is "multi" if it's not in the first 4 standard single-doc types
+  const MULTI_TIPO = tiposDocumentoConfig.length > 0 ? tiposDocumentoConfig[tiposDocumentoConfig.length - 1] : 'Factura Genérica';
+
   // Modal: Add service folder
   const [showAddPastaModal, setShowAddPastaModal] = useState(false);
   const [newPastaEmpresaId, setNewPastaEmpresaId] = useState('');
@@ -38,7 +37,7 @@ export default function Clientes({
 
   // Modal: Add Drive link
   const [showAddLinkModal, setShowAddLinkModal] = useState(false);
-  const [linkTargetTipo, setLinkTargetTipo] = useState<TipoDocumentoCliente | null>(null);
+  const [linkTargetTipo, setLinkTargetTipo] = useState<string | null>(null);
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [newLinkNome, setNewLinkNome] = useState('');
 
@@ -57,7 +56,7 @@ export default function Clientes({
   const servicosDaEmpresa = servicoPairs.filter(p => p.nome_empresa === selectedEmpresaName);
 
   // Level 3: documents for selected empresa+servico (exclude __pasta__ markers)
-  const docsDoPar = (tipo: TipoDocumentoCliente) =>
+  const docsDoPar = (tipo: string) =>
     documentosCliente.filter(
       d => d.nome_empresa === selectedEmpresaName && d.servico_contratado === selectedServico && d.tipo === tipo
     );
@@ -99,10 +98,10 @@ export default function Clientes({
     }
 
     onAddDocumento({
-      nome_empresa: selectedEmpresaName,
-      servico_contratado: selectedServico,
-      tipo: linkTargetTipo,
-      nome_ficheiro: newLinkNome.trim() || linkTargetTipo,
+      nome_empresa: selectedEmpresaName!,
+      servico_contratado: selectedServico!,
+      tipo: linkTargetTipo as any,
+      nome_ficheiro: newLinkNome.trim() || linkTargetTipo!,
       url_ficheiro: finalUrl,
     });
 
@@ -112,7 +111,7 @@ export default function Clientes({
     setNewLinkNome('');
   };
 
-  const triggerAddLink = (tipo: TipoDocumentoCliente) => {
+  const triggerAddLink = (tipo: string) => {
     setLinkTargetTipo(tipo);
     setNewLinkUrl('');
     setNewLinkNome('');
@@ -251,10 +250,10 @@ export default function Clientes({
           </div>
           {/* Quick-add buttons per category */}
           <div className="flex flex-wrap gap-2 pl-14 sm:pl-0">
-            {TIPOS_DOCUMENTO.map(({ tipo }) => (
+            {tiposDocumentoConfig.map(tipo => (
               <button
                 key={tipo}
-                onClick={() => triggerAddLink(tipo)}
+                onClick={() => triggerAddLink(tipo as any)}
                 className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 px-3 py-2 transition flex items-center gap-1.5 cursor-pointer border border-slate-200 hover:border-blue-200"
               >
                 <Plus className="w-3 h-3" /> {tipo}
@@ -285,7 +284,8 @@ export default function Clientes({
                   </tr>
                 </thead>
                 <tbody>
-                  {TIPOS_DOCUMENTO.map(({ tipo, multi }) => {
+                  {tiposDocumentoConfig.map(tipo => {
+                    const isMulti = tipo === MULTI_TIPO;
                     const rows = allDocs.filter(d => d.tipo === tipo);
                     if (rows.length === 0) {
                       // Show empty placeholder row per category
@@ -340,7 +340,7 @@ export default function Clientes({
                         </td>
                         <td className="px-4 py-3 align-middle text-center">
                           <div className="flex items-center justify-center gap-2">
-                            {(multi || rows.length === 1) && idx === rows.length - 1 && (
+                            {(isMulti || rows.length === 1) && idx === rows.length - 1 && (
                               <button
                                 onClick={() => triggerAddLink(tipo)}
                                 className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 transition cursor-pointer rounded-sm opacity-0 group-hover:opacity-100"

@@ -882,6 +882,17 @@ export default function Empresas({
                   />
                 </div>
 
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">FACEBOOK</label>
+                  <input
+                    type="text"
+                    placeholder="username ou página do facebook"
+                    value={newEmpFb}
+                    onChange={(e) => setNewEmpFb(e.target.value)}
+                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-none"
+                  />
+                </div>
+
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-bold text-slate-700 mb-1">OBSERVAÇÕES OPERACIONAIS / BREVE TEXTO</label>
                   <textarea
@@ -1115,6 +1126,16 @@ export default function Empresas({
                     type="text"
                     value={editEmpInsta}
                     onChange={(e) => setEditEmpInsta(e.target.value)}
+                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">FACEBOOK</label>
+                  <input
+                    type="text"
+                    value={editEmpFb}
+                    onChange={(e) => setEditEmpFb(e.target.value)}
                     className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-none"
                   />
                 </div>
