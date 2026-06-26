@@ -136,7 +136,8 @@ export default function Utilizadores({
     { key: 'empresas', label: 'Empresas & Contactos', desc: 'Visualizar, registar e editar dados de empresas e contactos.' },
     { key: 'pipeline', label: 'Pipeline Comercial', desc: 'Gerir oportunidades de venda e funil de prospecção.' },
     { key: 'projectos', label: 'Gestão de Projectos', desc: 'Acompanhar os projectos e serviços ativos pós-venda.' },
-    { key: 'utilizadores', label: 'Gestão de Utilizadores', desc: 'Adicionar, editar e remover acessos de colaboradores.' }
+    { key: 'utilizadores', label: 'Gestão de Utilizadores', desc: 'Adicionar, editar e remover acessos de colaboradores.' },
+    { key: 'configuracoes', label: 'Configurações', desc: 'Gerir serviços, tipos de documentos e configurações avançadas do sistema.' }
   ];
 
   return (

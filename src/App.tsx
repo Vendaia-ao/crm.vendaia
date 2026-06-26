@@ -919,7 +919,7 @@ export default function App() {
             </button>
           )}
 
-          {hasPermission('utilizadores') && (
+          {hasPermission('configuracoes') && (
             <button
               onClick={() => setShowSettingsModal(true)}
               className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent`}
@@ -1062,6 +1062,14 @@ export default function App() {
                 }`}
             >
               Utilizadores
+            </button>
+          )}
+          {hasPermission('configuracoes') && (
+            <button
+              onClick={() => setShowSettingsModal(true)}
+              className="px-3 py-1 rounded-none text-[10px] font-extrabold uppercase transition select-none cursor-pointer text-slate-305 bg-slate-900/60 hover:text-white"
+            >
+              Configurações
             </button>
           )}
         </div>
