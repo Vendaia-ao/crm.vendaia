@@ -7,9 +7,8 @@ import {
   HistoricoItem,
   PipelineEtapa,
   MotivoPerda,
-  Cliente,
-  EstadoCliente,
-  ProximaAcaoComercial
+  DocumentoCliente,
+  TipoDocumentoCliente
 } from './types';
 
 import { supabase } from './lib/supabaseClient';
@@ -62,8 +61,8 @@ export default function App() {
   // User profiles state for CRUD and Access Management
   const [profiles, setProfiles] = useState<User[]>([]);
 
-  // Clientes (post-sales CRM clients)
-  const [clientes, setClientes] = useState<Cliente[]>([]);
+  // Clientes - documentos e pastas de serviço (tabela unificada)
+  const [documentosCliente, setDocumentosCliente] = useState<DocumentoCliente[]>([]);
 
   // Dynamic services configuration
   const DEFAULT_SERVICOS = ['Website', 'Email Corporativo', 'Branding', 'Social Media', 'Tráfego Pago', 'Sistema Personalizado', 'Consultoria Tecnológica'];
@@ -124,18 +123,18 @@ export default function App() {
 
         if (status.connected && status.tablesExist) {
           // Perform concurrent requests to CRM database tables (projectos excluded – managed by <Projectos> component)
-          const [empRes, conRes, optRes, projRes, histRes, profRes, cliRes] = await Promise.all([
+          const [empRes, conRes, optRes, projRes, histRes, profRes, docCliRes] = await Promise.all([
             supabase.from("empresas").select("*").order("data_cadastro", { ascending: false }),
             supabase.from("contactos").select("*"),
             supabase.from("oportunidades").select("*").order("data_entrada", { ascending: false }),
             supabase.from("projectos").select("id, oportunidade_id"),
             supabase.from("historico").select("*").order("data", { ascending: false }),
             supabase.from("profiles").select("*").order("data_cadastro", { ascending: false }),
-            supabase.from("clientes").select("*").order("data_fecho", { ascending: false }),
+            supabase.from("documentos_cliente").select("*").order("data_upload", { ascending: false }),
           ]);
 
           // Detect if any table does not exist database-side
-          const errors = [empRes.error, conRes.error, optRes.error, projRes.error, histRes.error];
+          const errors = [empRes.error, conRes.error, optRes.error, projRes.error, histRes.error, docCliRes.error];
           const missingTableError = errors.find(e => e && (e.code === "42P01" || e.message?.includes("does not exist")));
 
           if (missingTableError) {
@@ -153,12 +152,47 @@ export default function App() {
           const cleanProjectosRef = projRes.data || [];
           const cleanHistorico = histRes.data || [];
           const cleanProfiles = profRes.data || [];
-          const cleanClientes = cliRes.data || [];
+          const cleanDocumentosCliente = docCliRes.data || [];
 
           setEmpresas(cleanEmpresas);
           setContactos(cleanContactos);
           setOportunidades(cleanOportunidades);
-          setClientes(cleanClientes);
+
+          // Backfill: for every closed opportunity, ensure a folder exists in documentos_cliente
+          const oportunidadesFechadas = cleanOportunidades.filter((o: any) => o.etapa === 'Fechado');
+          const novasPastas: any[] = [];
+
+          for (const opp of oportunidadesFechadas) {
+            const empAssociada = cleanEmpresas.find((e: any) => e.id === opp.empresa_id);
+            if (!empAssociada) continue;
+
+            const pastaJaExiste = cleanDocumentosCliente.some(
+              (d: any) => d.nome_empresa === empAssociada.nome_empresa && d.servico_contratado === opp.servico
+            );
+
+            if (!pastaJaExiste) {
+              const marcador = {
+                id: `pasta-${opp.id}`,
+                nome_empresa: empAssociada.nome_empresa,
+                servico_contratado: opp.servico,
+                tipo: '__pasta__',
+                nome_ficheiro: '',
+                url_ficheiro: '',
+                data_upload: opp.data_entrada || new Date().toISOString()
+              };
+              novasPastas.push(marcador);
+            }
+          }
+
+          // Persist any missing folder markers to Supabase in one batch
+          if (novasPastas.length > 0) {
+            const { error: pastaError } = await supabase.from('documentos_cliente').upsert(novasPastas);
+            if (pastaError) console.warn('Backfill pastas:', pastaError.message);
+          }
+
+          // Merge backfilled folders with what was already loaded
+          const allDocumentos = [...cleanDocumentosCliente, ...novasPastas];
+          setDocumentosCliente(allDocumentos);
 
           // Lightweight reference for pipeline automation
           setProjectos(cleanProjectosRef);
@@ -225,6 +259,11 @@ export default function App() {
             const { error } = await supabase.from("profiles").upsert(profiles);
             if (error) throw new Error(`[Profiles] ${error.message}`);
           }
+          // Sync Stage F: Documentos Cliente (unified table)
+          if (documentosCliente && documentosCliente.length > 0) {
+            const { error } = await supabase.from("documentos_cliente").upsert(documentosCliente);
+            if (error) throw new Error(`[Documentos Cliente] ${error.message}`);
+          }
 
           setLastSynced(new Date().toLocaleTimeString('pt-AO'));
         } catch (err: any) {
@@ -233,7 +272,7 @@ export default function App() {
       }, 3000);
       return () => clearTimeout(delayDebounce);
     }
-  }, [empresas, contactos, oportunidades, historico, profiles, dbStatus.connected, dbStatus.tablesExist]);
+  }, [empresas, contactos, oportunidades, historico, profiles, documentosCliente, dbStatus.connected, dbStatus.tablesExist]);
 
   // Manual Triggered Sync
   const triggerManualSync = async () => {
@@ -262,6 +301,10 @@ export default function App() {
       }
       if (profiles && profiles.length > 0) {
         const { error } = await supabase.from("profiles").upsert(profiles);
+        if (error) throw error;
+      }
+      if (documentosCliente && documentosCliente.length > 0) {
+        const { error } = await supabase.from("documentos_cliente").upsert(documentosCliente);
         if (error) throw error;
       }
 
@@ -493,7 +536,7 @@ export default function App() {
     }
   };
 
-  const handleUpdateOportunidadeEtapa = (
+  const handleUpdateOportunidadeEtapa = async (
     id: string,
     novaEtapa: PipelineEtapa,
     motivoPerda?: MotivoPerda,
@@ -574,15 +617,38 @@ export default function App() {
           setProjectos(prev => [...prev, { id: projId, oportunidade_id: id }]);
         }
 
-        // 3. Log de historico
+        // Automacao: Criar pasta de Cliente/Serviço automaticamente na tabela unificada
         const nomeEmpresa = empAssociada ? empAssociada.nome_empresa : 'Empresa';
+        const pastaJaExiste = documentosCliente.some(
+          d => d.nome_empresa === nomeEmpresa && d.servico_contratado === previousLead.servico
+        );
+
+        if (!pastaJaExiste) {
+          const marcadorPasta: DocumentoCliente = {
+            id: `pasta-${Date.now()}`,
+            nome_empresa: nomeEmpresa,
+            servico_contratado: previousLead.servico,
+            tipo: '__pasta__',
+            nome_ficheiro: '',
+            url_ficheiro: '',
+            data_upload: new Date().toISOString()
+          };
+          setDocumentosCliente(prev => [marcadorPasta, ...prev]);
+          if (supabase && dbStatus.connected && dbStatus.tablesExist) {
+            supabase.from('documentos_cliente').insert(marcadorPasta).then(({ error }) => {
+              if (error) console.warn('Erro ao criar pasta no Supabase:', error.message);
+            });
+          }
+        }
+
+        // 3. Log de historico
         const projLog: HistoricoItem = {
           id: 'hist-' + (Date.now() + 1),
           empresa_id: previousLead.empresa_id,
           autor: 'Sistema Vendaia',
           data: new Date().toISOString(),
           tipo: 'cliente',
-          descricao: 'Negócio fechado! Projecto de "' + previousLead.servico + '" para "' + nomeEmpresa + '" criado automaticamente em Gestão de Projectos.'
+          descricao: 'Negócio fechado! Projecto e pasta de Cliente de "' + previousLead.servico + '" para "' + nomeEmpresa + '" criados automaticamente.'
         };
         setHistorico(prev => [projLog, log, ...prev]);
       }
@@ -599,46 +665,31 @@ export default function App() {
     } catch (_) { }
   }, []);
 
-  // Core Mutation triggers - Cliente (kept for backward compat but Clientes module is now a placeholder)
-  const handleUpdateClienteEstado = (
-    id: string,
-    estado: EstadoCliente,
-    reuniaoData?: { data?: string; hora?: string; local?: string; obs?: string }
-  ) => {
-    setClientes(prev => prev.map(c => {
-      if (c.id !== id) return c;
-      return {
-        ...c,
-        estado,
-        data_reuniao: reuniaoData?.data ?? c.data_reuniao,
-        hora_reuniao: reuniaoData?.hora ?? c.hora_reuniao,
-        local_reuniao: reuniaoData?.local ?? c.local_reuniao,
-        observacoes_reuniao: reuniaoData?.obs ?? c.observacoes_reuniao
-      };
-    }));
-  };
-
-  const handleUpdateClienteProximaAcao = (id: string, acao: ProximaAcaoComercial) => {
-    setClientes(prev => prev.map(c => c.id === id ? { ...c, proxima_acao: acao } : c));
-  };
-
-  const handleAddCliente = (cliente: Omit<Cliente, 'id' | 'data_fecho'>) => {
-    const newCliente: Cliente = {
-      ...cliente,
-      id: `cli-${Date.now()}`,
-      data_fecho: new Date().toISOString()
+  const handleAddDocumentoCliente = async (doc: Omit<DocumentoCliente, 'id' | 'data_upload'>) => {
+    const newDoc: DocumentoCliente = {
+      ...doc,
+      id: `doc-${Date.now()}`,
+      data_upload: new Date().toISOString()
     };
-    setClientes([newCliente, ...clientes]);
+    // Optimistic update
+    setDocumentosCliente(prev => [newDoc, ...prev]);
+    // Persist to Supabase immediately
+    if (supabase && dbStatus.connected && dbStatus.tablesExist) {
+      const { error } = await supabase.from('documentos_cliente').insert(newDoc);
+      if (error) {
+        console.warn('Erro ao guardar documento no Supabase:', error.message);
+      }
+    }
   };
 
-  const handleDeleteCliente = async (id: string) => {
-    setClientes(clientes.filter(c => c.id !== id));
+  const handleDeleteDocumentoCliente = async (id: string) => {
+    setDocumentosCliente(documentosCliente.filter(d => d.id !== id));
     if (dbStatus.connected && dbStatus.tablesExist && supabase) {
       try {
-        const { error } = await supabase.from("clientes").delete().eq("id", id);
+        const { error } = await supabase.from("documentos_cliente").delete().eq("id", id);
         if (error) throw error;
       } catch (err) {
-        console.warn("Erro ao eliminar cliente no Supabase:", err);
+        console.warn("Erro ao eliminar documento no Supabase:", err);
       }
     }
   };
@@ -758,18 +809,12 @@ export default function App() {
 
         {/* Navigation Sections */}
         <nav className="flex-1 py-4 overflow-y-auto space-y-1">
-          {!isSidebarCollapsed && (
-            <div className="px-6 py-2 text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 select-none">
-              Menu Principal
-            </div>
-          )}
-
           {hasPermission('dashboard') && (
             <button
               onClick={() => setActiveModule('dashboard')}
               className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${activeModule === 'dashboard'
-                  ? 'bg-blue-50/85 text-blue-700 border-blue-700'
-                  : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
+                ? 'bg-blue-50/85 text-blue-700 border-blue-700'
+                : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
                 }`}
               title="Dashboard"
             >
@@ -782,8 +827,8 @@ export default function App() {
             <button
               onClick={() => setActiveModule('empresas')}
               className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${activeModule === 'empresas'
-                  ? 'bg-blue-50/85 text-blue-700 border-blue-700'
-                  : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
+                ? 'bg-blue-50/85 text-blue-700 border-blue-700'
+                : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
                 }`}
               title="Empresas B2B"
             >
@@ -796,13 +841,13 @@ export default function App() {
             <button
               onClick={() => setActiveModule('pipeline')}
               className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${activeModule === 'pipeline'
-                  ? 'bg-blue-50/85 text-blue-700 border-blue-700'
-                  : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
+                ? 'bg-blue-50/85 text-blue-700 border-blue-700'
+                : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
                 }`}
               title="Pipeline Comercial"
             >
               <GitBranch className="w-4 h-4 shrink-0 text-slate-400" />
-              {!isSidebarCollapsed && <span>Pipeline Kanban</span>}
+              {!isSidebarCollapsed && <span>Pipeline</span>}
             </button>
           )}
 
@@ -811,8 +856,8 @@ export default function App() {
               <button
                 onClick={() => setActiveModule('clientes')}
                 className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${activeModule === 'clientes'
-                    ? 'bg-blue-50/85 text-blue-700 border-blue-700'
-                    : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
+                  ? 'bg-blue-50/85 text-blue-700 border-blue-700'
+                  : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
                   }`}
                 title="Clientes Ativos"
               >
@@ -822,8 +867,8 @@ export default function App() {
               <button
                 onClick={() => setActiveModule('projectos')}
                 className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${activeModule === 'projectos'
-                    ? 'bg-blue-50/85 text-blue-700 border-blue-700'
-                    : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
+                  ? 'bg-blue-50/85 text-blue-700 border-blue-700'
+                  : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
                   }`}
                 title="Gestão de Projetos"
               >
@@ -837,8 +882,8 @@ export default function App() {
             <button
               onClick={() => setActiveModule('utilizadores')}
               className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${activeModule === 'utilizadores'
-                  ? 'bg-blue-50/85 text-blue-700 border-blue-700'
-                  : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
+                ? 'bg-blue-50/85 text-blue-700 border-blue-700'
+                : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
                 }`}
               title="Utilizadores e Acessos"
             >
@@ -1060,7 +1105,13 @@ export default function App() {
           )}
 
           {activeModule === 'clientes' && (
-            <Clientes />
+            <Clientes
+              empresas={empresas}
+              servicosConfig={servicosConfig}
+              documentosCliente={documentosCliente}
+              onAddDocumento={handleAddDocumentoCliente}
+              onDeleteDocumento={handleDeleteDocumentoCliente}
+            />
           )}
 
           {activeModule === 'projectos' && (
@@ -1201,6 +1252,35 @@ CREATE TABLE IF NOT EXISTS historico (
   descricao TEXT NOT NULL
 );
 
+-- 6. Tabela de Clientes
+CREATE TABLE IF NOT EXISTS clientes (
+  id TEXT PRIMARY KEY,
+  nome_empresa TEXT NOT NULL,
+  contacto_principal TEXT,
+  telefone TEXT,
+  email TEXT,
+  servico_contratado TEXT NOT NULL,
+  valor_negocio NUMERIC NOT NULL DEFAULT 0,
+  data_fecho TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  projeto_associado TEXT,
+  estado TEXT NOT NULL DEFAULT 'Aguardando Apresentação',
+  data_reuniao TEXT,
+  hora_reuniao TEXT,
+  local_reuniao TEXT,
+  observacoes_reuniao TEXT,
+  proxima_acao TEXT DEFAULT ''
+);
+
+-- 7. Tabela de Documentos do Cliente
+CREATE TABLE IF NOT EXISTS documentos_cliente (
+  id TEXT PRIMARY KEY,
+  cliente_id TEXT NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+  tipo TEXT NOT NULL,
+  nome_ficheiro TEXT NOT NULL,
+  url_ficheiro TEXT NOT NULL,
+  data_upload TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- =================================================================
 -- POLÍTICAS DE SEGURANÇA E RLS (ROW LEVEL SECURITY)
 -- =================================================================
@@ -1211,6 +1291,8 @@ ALTER TABLE oportunidades ENABLE ROW LEVEL SECURITY;
 ALTER TABLE contactos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projectos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE historico ENABLE ROW LEVEL SECURITY;
+ALTER TABLE clientes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE documentos_cliente ENABLE ROW LEVEL SECURITY;
 
 -- Criar políticas de segurança para permitir acesso ao CRM via chaves de API seguras (anon / authenticated)
 -- Como o CRM é de uso interno e sincronizado de forma segura, garantimos controle total para chamadas autorizadas:
@@ -1246,6 +1328,20 @@ CREATE POLICY "Acesso total Projectos" ON projectos
 -- Políticas para a tabela 'historico'
 DROP POLICY IF EXISTS "Acesso total Historico" ON historico;
 CREATE POLICY "Acesso total Historico" ON historico 
+  FOR ALL TO anon, authenticated 
+  USING (true) 
+  WITH CHECK (true);
+
+-- Políticas para a tabela 'clientes'
+DROP POLICY IF EXISTS "Acesso total Clientes" ON clientes;
+CREATE POLICY "Acesso total Clientes" ON clientes 
+  FOR ALL TO anon, authenticated 
+  USING (true) 
+  WITH CHECK (true);
+
+-- Políticas para a tabela 'documentos_cliente'
+DROP POLICY IF EXISTS "Acesso total Documentos Cliente" ON documentos_cliente;
+CREATE POLICY "Acesso total Documentos Cliente" ON documentos_cliente 
   FOR ALL TO anon, authenticated 
   USING (true) 
   WITH CHECK (true);
@@ -1324,19 +1420,52 @@ CREATE TABLE IF NOT EXISTS historico (
   descricao TEXT NOT NULL
 );
 
+-- 6. Clientes Table (Com RLS habilitado)
+CREATE TABLE IF NOT EXISTS clientes (
+  id TEXT PRIMARY KEY,
+  nome_empresa TEXT NOT NULL,
+  contacto_principal TEXT,
+  telefone TEXT,
+  email TEXT,
+  servico_contratado TEXT NOT NULL,
+  valor_negocio NUMERIC NOT NULL DEFAULT 0,
+  data_fecho TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  projeto_associado TEXT,
+  estado TEXT NOT NULL DEFAULT 'Aguardando Apresentação',
+  data_reuniao TEXT,
+  hora_reuniao TEXT,
+  local_reuniao TEXT,
+  observacoes_reuniao TEXT,
+  proxima_acao TEXT DEFAULT ''
+);
+
+-- 7. Documentos Cliente Table (Com RLS habilitado)
+CREATE TABLE IF NOT EXISTS documentos_cliente (
+  id TEXT PRIMARY KEY,
+  cliente_id TEXT NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+  tipo TEXT NOT NULL,
+  nome_ficheiro TEXT NOT NULL,
+  url_ficheiro TEXT NOT NULL,
+  data_upload TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- HABILITAR RLS EM TODAS AS TABELAS:
 ALTER TABLE empresas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE oportunidades ENABLE ROW LEVEL SECURITY;
 ALTER TABLE contactos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projectos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE historico ENABLE ROW LEVEL SECURITY;
+ALTER TABLE clientes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE documentos_cliente ENABLE ROW LEVEL SECURITY;
 
 -- POLÍTICAS DE ACESSO TOTAL PARA ROLES DO CRM (anon, authenticated):
 CREATE POLICY "Acesso total Empresas" ON empresas FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Acesso total Oportunidades" ON oportunidades FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Acesso total Contactos" ON contactos FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Acesso total Projectos" ON projectos FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Acesso total Historico" ON historico FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);`}
+CREATE POLICY "Acesso total Historico" ON historico FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Acesso total Clientes" ON clientes FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Acesso total Documentos Cliente" ON documentos_cliente FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);`}
                 </pre>
               </div>
 

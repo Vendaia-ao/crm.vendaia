@@ -147,3 +147,14 @@ export interface HistoricoItem {
   descricao: string;
 }
 
+export type TipoDocumentoCliente = 'Proposta' | 'Contrato' | 'Factura Genérica' | 'Factura Recibo' | 'Termo de Entrega' | '__pasta__';
+
+export interface DocumentoCliente {
+  id: string;
+  nome_empresa: string;
+  servico_contratado: string;
+  tipo: TipoDocumentoCliente;
+  nome_ficheiro: string;
+  url_ficheiro: string;
+  data_upload: string;
+}
