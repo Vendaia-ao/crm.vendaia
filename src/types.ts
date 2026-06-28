@@ -158,3 +158,19 @@ export interface DocumentoCliente {
   url_ficheiro: string;
   data_upload: string;
 }
+
+export type PrioridadeTarefa = 'Baixa' | 'Média' | 'Alta';
+export type EstadoTarefa = 'Pendente' | 'Em andamento' | 'Concluída';
+
+export interface Tarefa {
+  id: string;
+  titulo: string;
+  descricao?: string;
+  responsavel: string;
+  data?: string; // ISO string
+  prioridade: PrioridadeTarefa;
+  estado: EstadoTarefa;
+  empresa_id?: string;
+  oportunidade_id?: string;
+  data_criacao?: string; // ISO string
+}

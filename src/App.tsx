@@ -20,6 +20,7 @@ import Pipeline from './components/Pipeline';
 import Projectos from './components/Projectos';
 import Clientes from './components/Clientes';
 import Utilizadores from './components/Utilizadores';
+import Tarefas from './components/Tarefas';
 import {
   Building2,
   LayoutDashboard,
@@ -39,7 +40,8 @@ import {
   Trash2,
   Key,
   FileText,
-  X
+  X,
+  CheckSquare
 } from 'lucide-react';
 
 export default function App() {
@@ -74,7 +76,7 @@ export default function App() {
   const [tiposDocumentoConfig, setTiposDocumentoConfig] = useState<string[]>(DEFAULT_TIPOS_DOCUMENTO);
 
   // Navigation module state
-  const [activeModule, setActiveModule] = useState<'dashboard' | 'empresas' | 'pipeline' | 'clientes' | 'projectos' | 'utilizadores'>('dashboard');
+  const [activeModule, setActiveModule] = useState<'dashboard' | 'empresas' | 'pipeline' | 'clientes' | 'projectos' | 'tarefas' | 'utilizadores'>('dashboard');
 
   // Main Menu Hamburguer responsive States
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -902,6 +904,17 @@ export default function App() {
                 <FolderLock className="w-4 h-4 shrink-0 text-slate-400" />
                 {!isSidebarCollapsed && <span>Projectos</span>}
               </button>
+              <button
+                onClick={() => setActiveModule('tarefas')}
+                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-3' : 'gap-3 px-6 py-3'} text-xs font-bold transition-all border-r-4 text-left ${activeModule === 'tarefas'
+                  ? 'bg-blue-50/85 text-blue-700 border-blue-700'
+                  : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent'
+                  }`}
+                title="Gestão de Tarefas"
+              >
+                <CheckSquare className="w-4 h-4 shrink-0 text-slate-400" />
+                {!isSidebarCollapsed && <span>Tarefas</span>}
+              </button>
             </>
           )}
 
@@ -1053,6 +1066,13 @@ export default function App() {
               >
                 Projectos
               </button>
+              <button
+                onClick={() => setActiveModule('tarefas')}
+                className={`px-3 py-1 rounded-none text-[10px] font-extrabold uppercase transition select-none cursor-pointer ${activeModule === 'tarefas' ? 'bg-orange-500 text-slate-950 font-black shadow-sm' : 'text-slate-305 bg-slate-900/60'
+                  }`}
+              >
+                Tarefas
+              </button>
             </>
           )}
           {hasPermission('utilizadores') && (
@@ -1087,8 +1107,9 @@ export default function App() {
                   : activeModule === 'utilizadores' ? 'Utilizadores & Acessos'
                     : activeModule === 'clientes' ? 'Clientes Ativos'
                       : activeModule === 'empresas' ? 'Base de Empresas'
-                        : activeModule === 'dashboard' ? 'Dashboard'
-                          : activeModule}
+                        : activeModule === 'tarefas' ? 'Gestão de Tarefas'
+                          : activeModule === 'dashboard' ? 'Dashboard'
+                            : activeModule}
             </h1>
             <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 transition text-[11px] text-slate-600 font-semibold rounded-none border border-slate-200">
               <Activity className="w-3 h-3 text-emerald-500 animate-pulse" />
@@ -1156,6 +1177,14 @@ export default function App() {
               profiles={profiles}
               servicosConfig={servicosConfig}
               onProjectosChanged={handleProjectosChanged}
+            />
+          )}
+
+          {activeModule === 'tarefas' && (
+            <Tarefas
+              empresas={empresas}
+              profiles={profiles}
+              oportunidades={oportunidades}
             />
           )}
 
