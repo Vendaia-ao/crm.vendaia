@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>VENDAIA SOLUTIONS - CRM Comercial</title>
     <link rel="icon" type="image/png" href="/assets/ícone.png" />
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "de95ea0a-a6c1-4d73-bc6e-d7416fb86a34",
+          allowLocalhostAsSecureOrigin: true,
+          notifyButton: {
+            enable: true,
+          },
+        });
+        OneSignal.Slidedown.promptPush();
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>

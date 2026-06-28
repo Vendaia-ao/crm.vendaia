@@ -13,6 +13,7 @@ import {
 
 import { supabase } from './lib/supabaseClient';
 import { createClient } from '@supabase/supabase-js';
+
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import Empresas from './components/Empresas';
@@ -101,6 +102,18 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [showSqlModal, setShowSqlModal] = useState(false);
+
+  // Sync OneSignal user identity when currentUser changes
+  useEffect(() => {
+    const OneSignalDeferred = (window as any).OneSignalDeferred || [];
+    OneSignalDeferred.push((OneSignal: any) => {
+      if (currentUser) {
+        OneSignal.login(currentUser.id).catch(console.error);
+      } else {
+        try { OneSignal.logout(); } catch (e) {}
+      }
+    });
+  }, [currentUser]);
 
   // Connection check and database hydration
   useEffect(() => {
