@@ -76,7 +76,8 @@ export default function Auth({ onLogin }: AuthProps) {
             });
             return;
           } else {
-            throw new Error('Conta autenticada, mas o seu perfil de utilizador não foi encontrado. Contacte o administrador.');
+            console.error("Erro ao buscar perfil:", profileError);
+            throw new Error(`Conta autenticada, mas o seu perfil de utilizador não foi encontrado. Erro: ${profileError?.message || 'Nenhum perfil retornado'}`);
           }
         } else if (authError) {
           throw new Error(mapAuthError(authError.message));

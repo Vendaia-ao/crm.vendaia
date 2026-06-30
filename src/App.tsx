@@ -156,6 +156,7 @@ export default function App() {
 
           // Detect if any table does not exist database-side
           const errors = [empRes.error, conRes.error, optRes.error, projRes.error, histRes.error, docCliRes.error];
+          console.log("Erros na resposta das queries:", errors);
           const missingTableError = errors.find(e => e && (e.code === "42P01" || e.message?.includes("does not exist")));
 
           if (missingTableError) {
@@ -175,6 +176,8 @@ export default function App() {
           const cleanProfiles = profRes.data || [];
           const cleanDocumentosCliente = docCliRes.data || [];
 
+          skipSyncRef.current = true;
+          
           setEmpresas(cleanEmpresas);
           setContactos(cleanContactos);
           setOportunidades(cleanOportunidades);
@@ -247,11 +250,36 @@ export default function App() {
     };
 
     checkDbAndLoad();
-  }, []);
+
+    if (supabase) {
+      const channel = supabase.channel('crm-public-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public' },
+          (payload) => {
+            console.log('🔄 Realtime update recebido (App):', payload);
+            checkDbAndLoad();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [currentUser]);
+
+  // Reference to skip sync when data comes from the server (Realtime/Initial load)
+  const skipSyncRef = React.useRef(true);
 
   // Silent debounced background sync to Supabase when active states change
   // NOTE: projectos are managed by <Projectos> component directly via Supabase – not synced here
   useEffect(() => {
+    if (skipSyncRef.current) {
+      skipSyncRef.current = false;
+      return;
+    }
+
     if (dbStatus.connected && dbStatus.tablesExist && supabase) {
       const delayDebounce = setTimeout(async () => {
         try {
@@ -473,6 +501,12 @@ export default function App() {
     const updated = [fresh, ...empresas];
     setEmpresas(updated);
 
+    if (dbStatus.connected && dbStatus.tablesExist && supabase) {
+      supabase.from('empresas').insert(fresh).then(({ error }) => {
+        if (error) console.error("Erro ao inserir empresa:", error);
+      });
+    }
+
     // Auto historic logging
     const log: HistoricoItem = {
       id: `hist-${Date.now()}`,
@@ -509,6 +543,12 @@ export default function App() {
   const handleUpdateEmpresa = (editedEmp: Empresa) => {
     const updated = empresas.map(e => e.id === editedEmp.id ? editedEmp : e);
     setEmpresas(updated);
+
+    if (dbStatus.connected && dbStatus.tablesExist && supabase) {
+      supabase.from('empresas').update(editedEmp).eq('id', editedEmp.id).then(({ error }) => {
+        if (error) console.error("Erro ao atualizar empresa:", error);
+      });
+    }
   };
 
   // Core Mutation triggers - Contacto
@@ -518,10 +558,22 @@ export default function App() {
       id: `con-${Date.now()}`
     };
     setContactos([fresh, ...contactos]);
+
+    if (dbStatus.connected && dbStatus.tablesExist && supabase) {
+      supabase.from('contactos').insert(fresh).then(({ error }) => {
+        if (error) console.error("Erro ao inserir contacto:", error);
+      });
+    }
   };
 
   const handleDeleteContacto = (id: string) => {
     setContactos(contactos.filter(c => c.id !== id));
+
+    if (dbStatus.connected && dbStatus.tablesExist && supabase) {
+      supabase.from('contactos').delete().eq('id', id).then(({ error }) => {
+        if (error) console.error("Erro ao remover contacto:", error);
+      });
+    }
   };
 
   // Core Mutation triggers - Opportunity & Pipeline stage update!
@@ -532,6 +584,12 @@ export default function App() {
       data_entrada: new Date().toISOString()
     };
     setOportunidades([fresh, ...oportunidades]);
+
+    if (dbStatus.connected && dbStatus.tablesExist && supabase) {
+      supabase.from('oportunidades').insert(fresh).then(({ error }) => {
+        if (error) console.error("Erro ao inserir oportunidade:", error);
+      });
+    }
 
     // History Log
     const log: HistoricoItem = {
@@ -582,6 +640,16 @@ export default function App() {
       return opt;
     });
     setOportunidades(updated);
+
+    // Grava imediatamente na base de dados para evitar conflito com o Realtime
+    if (dbStatus.connected && dbStatus.tablesExist && supabase) {
+      const optToUpdate = updated.find(o => o.id === id);
+      if (optToUpdate) {
+        supabase.from('oportunidades').update(optToUpdate).eq('id', id).then(({ error }) => {
+          if (error) console.error("Erro ao atualizar etapa no Supabase:", error);
+        });
+      }
+    }
 
     // History change log
     const log: HistoricoItem = {
